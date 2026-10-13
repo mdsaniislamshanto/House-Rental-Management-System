@@ -1,0 +1,184 @@
+@model Shanto_VilaManagement_System.Models.Resident
+@{
+    ViewData["Title"] = $"{Model.Name} তথ্য পরিবর্তন";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="custom-card">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">
+                    <i class="bi bi-pencil-square text-primary"></i>
+                    <span>@Model.Name - এর তথ্য পরিবর্তন</span>
+                </h2>
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-custom">
+                    <i class="bi bi-arrow-left"></i> প্রোফাইলে যান
+                </a>
+            </div>
+
+            <div class="card-body-custom">
+                <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="Photo" />
+                    <input type="hidden" asp-for="NIDFront" />
+                    <input type="hidden" asp-for="NIDBack" />
+                    <input type="hidden" asp-for="CreatedAt" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <!-- Room & Relationship -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="RoomId" class="form-label fw-semibold">রুম নির্বাচন করুন *</label>
+                            <select asp-for="RoomId" class="form-select" asp-items="ViewBag.RoomId"></select>
+                            <span asp-validation-for="RoomId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Relationship" class="form-label fw-semibold">সম্পর্ক *</label>
+                            <select asp-for="Relationship" class="form-select">
+                                <option value="প্রধান ভাড়াটিয়া">প্রধান ভাড়াটিয়া</option>
+                                <option value="স্ত্রী">স্ত্রী</option>
+                                <option value="স্বামী">স্বামী</option>
+                                <option value="ছেলে">ছেলে</option>
+                                <option value="মেয়ে">মেয়ে</option>
+                                <option value="বাবা">বাবা</option>
+                                <option value="মা">মা</option>
+                                <option value="ভাই">ভাই</option>
+                                <option value="বোন">বোন</option>
+                                <option value="অন্যান্য">অন্যান্য</option>
+                            </select>
+                            <span asp-validation-for="Relationship" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Primary Tenant & Advance -->
+                    <div class="card bg-light border p-3 rounded-3 mb-4">
+                        <div class="row align-items-center g-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsPrimaryTenant" id="isPrimaryTenantCheck">
+                                    <label class="form-check-label fw-bold text-dark" for="isPrimaryTenantCheck">
+                                        ইনি কি এই রুমের "প্রধান ভাড়াটিয়া"?
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="AdvanceAmount" class="form-label fw-semibold text-dark mb-1">
+                                    <i class="bi bi-cash-stack text-success me-1"></i>অগ্রিম জমার পরিমাণ (টাকা)
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white">৳</span>
+                                    <input asp-for="AdvanceAmount" type="number" step="0.01" class="form-control fw-bold text-success" placeholder="০.০০" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Personal Information -->
+                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                        <i class="bi bi-person-badge text-primary me-2"></i>ব্যক্তিগত তথ্যাবলী
+                    </h5>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Name" class="form-label fw-semibold">পুরো নাম *</label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Phone" class="form-label fw-semibold">মোবাইল নম্বর *</label>
+                            <input asp-for="Phone" class="form-control" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Profession" class="form-label fw-semibold">পেশা</label>
+                            <input asp-for="Profession" class="form-control" />
+                            <span asp-validation-for="Profession" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Organization" class="form-label fw-semibold">চাকরি / প্রতিষ্ঠানের নাম</label>
+                            <input asp-for="Organization" class="form-control" />
+                            <span asp-validation-for="Organization" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="DateOfBirthOrAge" class="form-label fw-semibold">জন্মতারিখ / বয়স (ঐচ্ছিক)</label>
+                            <input asp-for="DateOfBirthOrAge" class="form-control" />
+                        </div>
+                    </div>
+
+                    <!-- Address Information -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="CurrentAddress" class="form-label fw-semibold">বর্তমান ঠিকানা</label>
+                            <textarea asp-for="CurrentAddress" class="form-control" rows="2"></textarea>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="PermanentAddress" class="form-label fw-semibold">স্থায়ী ঠিকানা</label>
+                            <textarea asp-for="PermanentAddress" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Existing & New File Uploads -->
+                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                        <i class="bi bi-file-earmark-person text-primary me-2"></i>ছবি ও NID কার্ড
+                    </h5>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">বাসিন্দার ছবি</label>
+                            @if (!string.IsNullOrWhiteSpace(Model.Photo))
+                            {
+                                <div class="mb-2">
+                                    <img src="@Model.Photo" alt="@Model.Name" class="resident-avatar" />
+                                    <span class="small text-muted ms-2">বর্তমান ছবি সংরক্ষিত আছে</span>
+                                </div>
+                            }
+                            <input type="file" name="photoFile" class="form-control" accept="image/*" />
+                            <div class="form-text small">পরিবর্তন করতে চাইলে নতুন ফাইল আপলোড করুন</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">NID কার্ড (সামনের অংশ)</label>
+                            @if (!string.IsNullOrWhiteSpace(Model.NIDFront))
+                            {
+                                <div class="mb-2">
+                                    <a href="@Model.NIDFront" target="_blank" class="badge bg-light text-primary border text-decoration-none">
+                                        <i class="bi bi-eye"></i> বর্তমান NID ফ্রন্ট দেখুন
+                                    </a>
+                                </div>
+                            }
+                            <input type="file" name="nidFrontFile" class="form-control" accept="image/*,.pdf" />
+                            <div class="form-text small">নতুন ফাইল দিলে পুরোনোটি প্রতিস্থাপিত হবে</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">NID কার্ড (পেছনের অংশ)</label>
+                            @if (!string.IsNullOrWhiteSpace(Model.NIDBack))
+                            {
+                                <div class="mb-2">
+                                    <a href="@Model.NIDBack" target="_blank" class="badge bg-light text-primary border text-decoration-none">
+                                        <i class="bi bi-eye"></i> বর্তমান NID ব্যাক দেখুন
+                                    </a>
+                                </div>
+                            }
+                            <input type="file" name="nidBackFile" class="form-control" accept="image/*,.pdf" />
+                            <div class="form-text small">নতুন ফাইল দিলে পুরোনোটি প্রতিস্থাপিত হবে</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary-custom flex-grow-1 justify-content-center">
+                            <i class="bi bi-save"></i> পরিবর্তন সংরক্ষণ করুন
+                        </button>
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-custom">বাতিল</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

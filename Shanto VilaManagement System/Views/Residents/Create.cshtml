@@ -1,0 +1,624 @@
+@model Shanto_VilaManagement_System.ViewModels.MultipleResidentsCreateViewModel
+@{
+    ViewData["Title"] = Model.IsAddMember ? "রুমে নতুন সদস্য যোগ করুন" : "নতুন বাসিন্দা ও ভাড়াটিয়া যুক্ত করুন";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        @if (ViewBag.AllRoomsOccupied == true && !Model.IsAddMember)
+        {
+            <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+                <i class="bi bi-exclamation-triangle-fill fs-4 text-warning"></i>
+                <div>
+                    <strong>সবগুলো রুম ইতোমধ্যে ভাড়া দেওয়া আছে!</strong> বর্তমানে কোনো রুম খালি নেই। নতুন কোনো ভাড়াটিয়া যোগ করতে চাইলে প্রথমে কোনো রুম খালি করুন অথবা বিদ্যমান কোনো রুমে সদস্য যোগ করুন।
+                </div>
+            </div>
+        }
+        else if (Model.IsAddMember)
+        {
+            <div class="alert alert-info d-flex align-items-center gap-2 mb-4">
+                <i class="bi bi-info-circle-fill fs-5 text-info"></i>
+                <div>
+                    <strong>রুমের সদস্য সংখ্যা বৃদ্ধি:</strong> এই রুমে ইতোমধ্যে প্রধান ভাড়াটিয়া রয়েছেন। আপনি এই রুমের পরিবারের অতিরিক্ত সদস্য যুক্ত করছেন।
+                </div>
+            </div>
+        }
+
+        <div class="custom-card mb-4">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">
+                    <i class="bi bi-people-fill text-primary"></i>
+                    <span>@(Model.IsAddMember ? "রুমে নতুন সদস্য যোগ করুন" : "নতুন বাসিন্দা ও ভাড়াটিয়া যুক্ত করুন")</span>
+                </h2>
+                <a asp-action="Index" class="btn btn-sm btn-outline-custom">
+                    <i class="bi bi-arrow-left"></i> ফিরে যান
+                </a>
+            </div>
+
+            <div class="card-body-custom">
+                <form asp-action="Create" method="post" enctype="multipart/form-data" id="multiResidentForm">
+                    <input type="hidden" asp-for="IsAddMember" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4"></div>
+
+                    <!-- Room & Resident Count Selector Panel -->
+                    <div class="card bg-light border p-3 rounded-3 mb-4">
+                        <h6 class="fw-bold text-dark mb-3">
+                            <i class="bi bi-sliders2 text-primary me-2"></i>রুম ও সদস্য সংখ্যা নির্বাচন করুন
+                        </h6>
+
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-@(Model.IsAddMember ? "6" : "4")">
+                                <label asp-for="RoomId" class="form-label fw-semibold">রুম নির্বাচন করুন *</label>
+                                <select asp-for="RoomId" class="form-select form-select-lg fw-bold text-primary" asp-items="ViewBag.RoomId" required>
+                                    <option value="">— রুম সিলেক্ট করুন —</option>
+                                </select>
+                                <span asp-validation-for="RoomId" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-sm-6 col-md-3" style="@(Model.IsAddMember ? "display:none;" : "")">
+                                <label asp-for="AdvanceAmount" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-cash-stack text-success me-1"></i>অগ্রিম জমার পরিমাণ (টাকা)
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white">৳</span>
+                                    <input asp-for="AdvanceAmount" type="number" step="0.01" class="form-control fw-bold text-success" placeholder="০.০০" />
+                                </div>
+                                <div class="form-text small">ভাড়াটিয়ার প্রদত্ত অগ্রিম টাকা</div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-2">
+                                <label class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-person-fill text-primary me-1"></i>প্রাপ্তবয়স্ক
+                                </label>
+                                <select asp-for="AdultCount" id="adultCountSelect" class="form-select fw-bold">
+                                    @for (int a = (Model.IsAddMember ? 0 : 1); a <= 10; a++)
+                                    {
+                                        <option value="@a">@BanglaHelper.ToBanglaDigits(a) জন</option>
+                                    }
+                                </select>
+                                <div class="form-text small">@(Model.IsAddMember ? "০ বা ততোধিক প্রাপ্তবয়স্ক" : "কমপক্ষে ১ জন")</div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-3">
+                                <label class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-emoji-smile-fill text-warning me-1"></i>শিশু / বাচ্চা
+                                </label>
+                                <select asp-for="ChildCount" id="childCountSelect" class="form-select fw-bold">
+                                    @for (int c = 0; c <= 10; c++)
+                                    {
+                                        <option value="@c">@BanglaHelper.ToBanglaDigits(c) জন</option>
+                                    }
+                                </select>
+                                <div class="form-text small">০ বা ততোধিক শিশু</div>
+                            </div>
+                        </div>
+
+                        <!-- Live Summary Banner -->
+                        <div class="mt-3 pt-3 border-top d-flex flex-wrap justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary px-3 py-2 fs-6" id="summaryTotalBadge">
+                                    <i class="bi bi-people-fill me-1"></i> মোট সদস্য: ১ জন
+                                </span>
+                                <span class="badge bg-light text-dark border px-2 py-2" id="summaryBreakdownBadge">
+                                    (প্রাপ্তবয়স্ক: ১ জন, শিশু: ০ জন)
+                                </span>
+                            </div>
+                            <span class="text-muted small">
+                                <i class="bi bi-info-circle me-1"></i>নিচে নির্বাচিত সংখ্যা অনুযায়ী ফরমের তথ্য পূরণ করুন
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Residents Form Container -->
+                    <div id="residentsContainer">
+                        <!-- Adult sections rendered here -->
+                        <div id="adultsContainer"></div>
+
+                        <!-- Children sections rendered here -->
+                        <div id="childrenContainer"></div>
+                    </div>
+
+                    <!-- Form Action Buttons -->
+                    <div class="card p-3 bg-light border rounded-3 mt-4">
+                        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                            <span class="text-secondary small">
+                                * লাল তারকা চিহ্নিত ঘরগুলো পূরণ করা আবশ্যক। প্রধান ভাড়াটিয়াকে অবশ্যই চিহ্নিত রাখতে হবে।
+                            </span>
+                            <div class="d-flex gap-2">
+                                <a asp-action="Index" class="btn btn-outline-custom">বাতিল</a>
+                                <button type="submit" class="btn btn-primary-custom px-4" id="submitAllBtn">
+                                    <i class="bi bi-check2-circle fs-5"></i>
+                                    <span>সকল বাসিন্দার তথ্য সংরক্ষণ করুন</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const banglaDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+        function toBanglaDigits(num) {
+            return num.toString().replace(/\d/g, d => banglaDigits[d]);
+        }
+
+        const adultCountSelect = document.getElementById('adultCountSelect');
+        const childCountSelect = document.getElementById('childCountSelect');
+        const adultsContainer = document.getElementById('adultsContainer');
+        const childrenContainer = document.getElementById('childrenContainer');
+        const summaryTotalBadge = document.getElementById('summaryTotalBadge');
+        const summaryBreakdownBadge = document.getElementById('summaryBreakdownBadge');
+
+        // Pre-loaded initial residents data if any (e.g. from server validation postback)
+        @{
+            var initialList = Model.Residents != null && Model.Residents.Any()
+                ? Model.Residents.Select(r => new {
+                    name = r.Name ?? "",
+                    phone = r.Phone ?? "",
+                    relationship = r.Relationship ?? "",
+                    isPrimaryTenant = r.IsPrimaryTenant,
+                    profession = r.Profession ?? "",
+                    organization = r.Organization ?? "",
+                    dateOfBirthOrAge = r.DateOfBirthOrAge ?? "",
+                    currentAddress = r.CurrentAddress ?? "",
+                    permanentAddress = r.PermanentAddress ?? "",
+                    isChild = r.IsChild
+                }).Cast<object>().ToList()
+                : new List<object> { new {
+                    name = "",
+                    phone = "",
+                    relationship = Model.IsAddMember ? "পরিবারের সদস্য" : "প্রধান ভাড়াটিয়া",
+                    isPrimaryTenant = !Model.IsAddMember,
+                    profession = "",
+                    organization = "",
+                    dateOfBirthOrAge = "",
+                    currentAddress = "",
+                    permanentAddress = "",
+                    isChild = false
+                } };
+            var initialJson = System.Text.Json.JsonSerializer.Serialize(initialList);
+        }
+        const initialResidents = @Html.Raw(initialJson);
+        const isAddMemberMode = @(Model.IsAddMember ? "true" : "false");
+
+        function createAdultCard(index, totalAdults, initialData) {
+            const data = initialData || {};
+            const isPrimary = !isAddMemberMode && ((index === 0 && (data.isPrimaryTenant !== false)) || data.isPrimaryTenant === true);
+            const relationship = data.relationship || (isAddMemberMode ? "পরিবারের সদস্য" : (index === 0 ? "প্রধান ভাড়াটিয়া" : "স্ত্রী"));
+
+            const card = document.createElement('div');
+            card.className = 'card border rounded-3 mb-4 adult-resident-card shadow-sm';
+            card.dataset.adultIndex = index;
+
+            card.innerHTML = `
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary rounded-circle p-2">
+                            <i class="bi bi-person-fill"></i>
+                        </span>
+                        <div>
+                            <h6 class="mb-0 fw-bold text-dark">
+                                প্রাপ্তবয়স্ক সদস্য #${toBanglaDigits(index + 1)}
+                                <span class="badge ${isPrimary ? 'bg-success' : 'bg-secondary'} ms-2 primary-badge">
+                                    ${isPrimary ? '★ প্রধান ভাড়াটিয়া' : 'সদস্য'}
+                                </span>
+                            </h6>
+                            <small class="text-muted">${isAddMemberMode ? 'পরিবারের সদস্যের তথ্যাবলী দিন' : (index === 0 ? 'প্রধান ভাড়াটিয়ার সকল তথ্যাবলী ও কাগজপত্র দিন' : 'পরিবারের প্রাপ্তবয়স্ক সদস্যের তথ্যাবলী')}</small>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-check form-switch m-0" style="${isAddMemberMode ? 'display: none !important;' : ''}">
+                            <input class="form-check-input primary-tenant-switch" type="checkbox" 
+                                   id="isPrimary_${index}" ${isPrimary ? 'checked' : ''} 
+                                   onchange="onPrimaryChanged(${index})">
+                            <label class="form-check-label small fw-semibold text-dark" for="isPrimary_${index}">
+                                প্রধান ভাড়াটিয়া
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-3 p-md-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">পুরো নাম *</label>
+                            <input type="text" class="form-control resident-name" 
+                                   value="${escapeHtml(data.name || '')}" 
+                                   placeholder="যেমন: রহিম উদ্দিন" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">সম্পর্ক *</label>
+                            <select class="form-select resident-relationship" required>
+                                <option value="প্রধান ভাড়াটিয়া" ${relationship === 'প্রধান ভাড়াটিয়া' ? 'selected' : ''}>প্রধান ভাড়াটিয়া</option>
+                                <option value="স্ত্রী" ${relationship === 'স্ত্রী' ? 'selected' : ''}>স্ত্রী</option>
+                                <option value="স্বামী" ${relationship === 'স্বামী' ? 'selected' : ''}>স্বামী</option>
+                                <option value="বাবা" ${relationship === 'বাবা' ? 'selected' : ''}>বাবা</option>
+                                <option value="মা" ${relationship === 'মা' ? 'selected' : ''}>মা</option>
+                                <option value="ভাই" ${relationship === 'ভাই' ? 'selected' : ''}>ভাই</option>
+                                <option value="বোন" ${relationship === 'বোন' ? 'selected' : ''}>বোন</option>
+                                <option value="ছেলে" ${relationship === 'ছেলে' ? 'selected' : ''}>ছেলে</option>
+                                <option value="মেয়ে" ${relationship === 'মেয়ে' ? 'selected' : ''}>মেয়ে</option>
+                                <option value="অন্যান্য" ${relationship === 'অন্যান্য' ? 'selected' : ''}>অন্যান্য</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">মোবাইল নম্বর ${index === 0 ? '*' : '(ঐচ্ছিক)'}</label>
+                            <input type="text" class="form-control resident-phone" 
+                                   value="${escapeHtml(data.phone || '')}" 
+                                   placeholder="${index === 0 ? '01XXXXXXXXX' : 'ফাঁকা থাকলে প্রধান ভাড়াটিয়ার নম্বর ব্যবহৃত হবে'}" 
+                                   ${index === 0 ? 'required' : ''} />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">পেশা</label>
+                            <input type="text" class="form-control resident-profession" 
+                                   value="${escapeHtml(data.profession || '')}" 
+                                   placeholder="যেমন: চাকরিজীবী, ব্যবসায়ী, গৃহিণী" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">প্রতিষ্ঠান / কর্মস্থল</label>
+                            <input type="text" class="form-control resident-org" 
+                                   value="${escapeHtml(data.organization || '')}" 
+                                   placeholder="যেমন: সোনালী ব্যাংক, বা নিজস্ব ব্যবসা" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">জন্মতারিখ / বয়স</label>
+                            <input type="text" class="form-control resident-dob" 
+                                   value="${escapeHtml(data.dateOfBirthOrAge || '')}" 
+                                   placeholder="যেমন: ৩৫ বছর বা ১৫/০১/১৯৯০" />
+                        </div>
+                    </div>
+
+                    <!-- Address Section with Copy Button for secondary adults -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
+                            <span class="fw-semibold text-dark small">ঠিকানা সংক্রান্ত তথ্য:</span>
+                            ${index > 0 ? `
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyPrimaryAddressTo(${index})">
+                                    <i class="bi bi-clipboard-check me-1"></i> প্রধান ভাড়াটিয়ার ঠিকানা কপি করুন
+                                </button>
+                            ` : ''}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">বর্তমান ঠিকানা</label>
+                            <textarea class="form-control resident-current-addr" rows="2" 
+                                      placeholder="বর্তমান ঠিকানা">${escapeHtml(data.currentAddress || '')}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">স্থায়ী ঠিকানা</label>
+                            <textarea class="form-control resident-permanent-addr" rows="2" 
+                                      placeholder="গ্রাম, ডাকঘর, থানা, জেলা">${escapeHtml(data.permanentAddress || '')}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- File Uploads -->
+                    <div class="bg-light p-3 rounded-2 border">
+                        <div class="small fw-bold text-dark mb-2">
+                            <i class="bi bi-paperclip text-primary me-1"></i> ছবি ও NID আপলোড (ঐচ্ছিক)
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">ছবি</label>
+                                <input type="file" class="form-control form-control-sm resident-photo" accept="image/*" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">NID (সামনের অংশ)</label>
+                                <input type="file" class="form-control form-control-sm resident-nid-front" accept="image/*,.pdf" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">NID (পেছনের অংশ)</label>
+                                <input type="file" class="form-control form-control-sm resident-nid-back" accept="image/*,.pdf" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function createChildCard(index, initialData) {
+            const data = initialData || {};
+            const relationship = data.relationship || "ছেলে";
+
+            const card = document.createElement('div');
+            card.className = 'card border rounded-3 mb-4 child-resident-card shadow-sm';
+            card.dataset.childIndex = index;
+
+            card.innerHTML = `
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-warning text-dark rounded-circle p-2">
+                            <i class="bi bi-emoji-smile-fill"></i>
+                        </span>
+                        <div>
+                            <h6 class="mb-0 fw-bold text-dark">
+                                শিশু / বাচ্চা সদস্য #${toBanglaDigits(index + 1)}
+                                <span class="badge bg-warning text-dark ms-2">শিশু / অপ্রাপ্তবয়স্ক</span>
+                            </h6>
+                            <small class="text-muted">শিশুর সাধারণ তথ্য ও বয়স দিন</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-3 p-md-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">শিশুর পুরো নাম *</label>
+                            <input type="text" class="form-control resident-name" 
+                                   value="${escapeHtml(data.name || '')}" 
+                                   placeholder="যেমন: আরিয়ান ইসলাম" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">সম্পর্ক *</label>
+                            <select class="form-select resident-relationship" required>
+                                <option value="ছেলে" ${relationship === 'ছেলে' ? 'selected' : ''}>ছেলে</option>
+                                <option value="মেয়ে" ${relationship === 'মেয়ে' ? 'selected' : ''}>মেয়ে</option>
+                                <option value="অন্যান্য" ${relationship === 'অন্যান্য' ? 'selected' : ''}>অন্যান্য</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">বয়স / জন্মতারিখ</label>
+                            <input type="text" class="form-control resident-dob" 
+                                   value="${escapeHtml(data.dateOfBirthOrAge || '')}" 
+                                   placeholder="যেমন: ৫ বছর বা ১২/০৩/২০১৯" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">মোবাইল নম্বর (ঐচ্ছিক)</label>
+                            <input type="text" class="form-control resident-phone" 
+                                   value="${escapeHtml(data.phone || '')}" 
+                                   placeholder="ফাঁকা থাকলে প্রধান ভাড়াটিয়ার নম্বর থাকবে" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">শিশুর ছবি (ঐচ্ছিক)</label>
+                            <input type="file" class="form-control resident-photo" accept="image/*" />
+                        </div>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function onPrimaryChanged(checkedIndex) {
+            const allSwitches = document.querySelectorAll('.primary-tenant-switch');
+            const allBadges = document.querySelectorAll('.primary-badge');
+
+            allSwitches.forEach((sw, idx) => {
+                if (idx !== checkedIndex) {
+                    sw.checked = false;
+                }
+            });
+
+            // Ensure at least one primary tenant is checked
+            const anyChecked = Array.from(allSwitches).some(sw => sw.checked);
+            if (!anyChecked && allSwitches.length > 0) {
+                allSwitches[0].checked = true;
+            }
+
+            allSwitches.forEach((sw, idx) => {
+                if (allBadges[idx]) {
+                    if (sw.checked) {
+                        allBadges[idx].className = 'badge bg-success ms-2 primary-badge';
+                        allBadges[idx].textContent = '★ প্রধান ভাড়াটিয়া';
+                    } else {
+                        allBadges[idx].className = 'badge bg-secondary ms-2 primary-badge';
+                        allBadges[idx].textContent = 'সদস্য';
+                    }
+                }
+            });
+
+            reindexAllInputs();
+        }
+
+        function copyPrimaryAddressTo(targetAdultIndex) {
+            const firstCard = adultsContainer.querySelector('.adult-resident-card');
+            if (!firstCard) return;
+
+            const primaryCurr = firstCard.querySelector('.resident-current-addr')?.value || '';
+            const primaryPerm = firstCard.querySelector('.resident-permanent-addr')?.value || '';
+
+            const targetCard = adultsContainer.querySelectorAll('.adult-resident-card')[targetAdultIndex];
+            if (targetCard) {
+                const targetCurr = targetCard.querySelector('.resident-current-addr');
+                const targetPerm = targetCard.querySelector('.resident-permanent-addr');
+                if (targetCurr) targetCurr.value = primaryCurr;
+                if (targetPerm) targetPerm.value = primaryPerm;
+            }
+        }
+
+        function updateResidentForms() {
+            const rawAdults = parseInt(adultCountSelect.value, 10);
+            const targetAdults = isNaN(rawAdults) ? (isAddMemberMode ? 0 : 1) : rawAdults;
+            const targetChildren = parseInt(childCountSelect.value, 10) || 0;
+
+            // Update Summary Badges
+            const total = targetAdults + targetChildren;
+            summaryTotalBadge.innerHTML = `<i class="bi bi-people-fill me-1"></i> মোট সদস্য: ${toBanglaDigits(total)} জন`;
+            summaryBreakdownBadge.textContent = `(প্রাপ্তবয়স্ক: ${toBanglaDigits(targetAdults)} জন, শিশু: ${toBanglaDigits(targetChildren)} জন)`;
+
+            // Adjust Adults
+            let currentAdultCards = adultsContainer.querySelectorAll('.adult-resident-card');
+            while (currentAdultCards.length < targetAdults) {
+                const nextIdx = currentAdultCards.length;
+                const initData = (initialResidents && initialResidents[nextIdx] && !initialResidents[nextIdx].isChild)
+                    ? initialResidents[nextIdx] : null;
+                const newCard = createAdultCard(nextIdx, targetAdults, initData);
+                adultsContainer.appendChild(newCard);
+                currentAdultCards = adultsContainer.querySelectorAll('.adult-resident-card');
+            }
+            while (currentAdultCards.length > targetAdults) {
+                const last = currentAdultCards[currentAdultCards.length - 1];
+                last.remove();
+                currentAdultCards = adultsContainer.querySelectorAll('.adult-resident-card');
+            }
+
+            // Adjust Children
+            let currentChildCards = childrenContainer.querySelectorAll('.child-resident-card');
+            while (currentChildCards.length < targetChildren) {
+                const nextIdx = currentChildCards.length;
+                const childOffset = targetAdults + nextIdx;
+                const initData = (initialResidents && initialResidents[childOffset] && initialResidents[childOffset].isChild)
+                    ? initialResidents[childOffset] : null;
+                const newCard = createChildCard(nextIdx, initData);
+                childrenContainer.appendChild(newCard);
+                currentChildCards = childrenContainer.querySelectorAll('.child-resident-card');
+            }
+            while (currentChildCards.length > targetChildren) {
+                const last = currentChildCards[currentChildCards.length - 1];
+                last.remove();
+                currentChildCards = childrenContainer.querySelectorAll('.child-resident-card');
+            }
+
+            reindexAllInputs();
+        }
+
+        function reindexAllInputs() {
+            let globalIndex = 0;
+
+            // Reindex Adults
+            const adultCards = adultsContainer.querySelectorAll('.adult-resident-card');
+            adultCards.forEach((card, idx) => {
+                const k = globalIndex++;
+
+                const nameInput = card.querySelector('.resident-name');
+                if (nameInput) nameInput.name = `Residents[${k}].Name`;
+
+                const phoneInput = card.querySelector('.resident-phone');
+                if (phoneInput) phoneInput.name = `Residents[${k}].Phone`;
+
+                const relInput = card.querySelector('.resident-relationship');
+                if (relInput) relInput.name = `Residents[${k}].Relationship`;
+
+                const profInput = card.querySelector('.resident-profession');
+                if (profInput) profInput.name = `Residents[${k}].Profession`;
+
+                const orgInput = card.querySelector('.resident-org');
+                if (orgInput) orgInput.name = `Residents[${k}].Organization`;
+
+                const dobInput = card.querySelector('.resident-dob');
+                if (dobInput) dobInput.name = `Residents[${k}].DateOfBirthOrAge`;
+
+                const currAddrInput = card.querySelector('.resident-current-addr');
+                if (currAddrInput) currAddrInput.name = `Residents[${k}].CurrentAddress`;
+
+                const permAddrInput = card.querySelector('.resident-permanent-addr');
+                if (permAddrInput) permAddrInput.name = `Residents[${k}].PermanentAddress`;
+
+                const photoInput = card.querySelector('.resident-photo');
+                if (photoInput) photoInput.name = `Residents[${k}].PhotoFile`;
+
+                const nidFrontInput = card.querySelector('.resident-nid-front');
+                if (nidFrontInput) nidFrontInput.name = `Residents[${k}].NidFrontFile`;
+
+                const nidBackInput = card.querySelector('.resident-nid-back');
+                if (nidBackInput) nidBackInput.name = `Residents[${k}].NidBackFile`;
+
+                // Hidden IsChild
+                let isChildHidden = card.querySelector('.is-child-hidden');
+                if (!isChildHidden) {
+                    isChildHidden = document.createElement('input');
+                    isChildHidden.type = 'hidden';
+                    isChildHidden.className = 'is-child-hidden';
+                    card.appendChild(isChildHidden);
+                }
+                isChildHidden.name = `Residents[${k}].IsChild`;
+                isChildHidden.value = 'false';
+
+                // Primary Tenant Checkbox
+                const primarySwitch = card.querySelector('.primary-tenant-switch');
+                let isPrimaryHidden = card.querySelector('.is-primary-hidden');
+                if (!isPrimaryHidden) {
+                    isPrimaryHidden = document.createElement('input');
+                    isPrimaryHidden.type = 'hidden';
+                    isPrimaryHidden.className = 'is-primary-hidden';
+                    card.appendChild(isPrimaryHidden);
+                }
+                isPrimaryHidden.name = `Residents[${k}].IsPrimaryTenant`;
+                isPrimaryHidden.value = primarySwitch && primarySwitch.checked ? 'true' : 'false';
+            });
+
+            // Reindex Children
+            const childCards = childrenContainer.querySelectorAll('.child-resident-card');
+            childCards.forEach((card, idx) => {
+                const k = globalIndex++;
+
+                const nameInput = card.querySelector('.resident-name');
+                if (nameInput) nameInput.name = `Residents[${k}].Name`;
+
+                const relInput = card.querySelector('.resident-relationship');
+                if (relInput) relInput.name = `Residents[${k}].Relationship`;
+
+                const dobInput = card.querySelector('.resident-dob');
+                if (dobInput) dobInput.name = `Residents[${k}].DateOfBirthOrAge`;
+
+                const phoneInput = card.querySelector('.resident-phone');
+                if (phoneInput) phoneInput.name = `Residents[${k}].Phone`;
+
+                const photoInput = card.querySelector('.resident-photo');
+                if (photoInput) photoInput.name = `Residents[${k}].PhotoFile`;
+
+                // Hidden IsChild
+                let isChildHidden = card.querySelector('.is-child-hidden');
+                if (!isChildHidden) {
+                    isChildHidden = document.createElement('input');
+                    isChildHidden.type = 'hidden';
+                    isChildHidden.className = 'is-child-hidden';
+                    card.appendChild(isChildHidden);
+                }
+                isChildHidden.name = `Residents[${k}].IsChild`;
+                isChildHidden.value = 'true';
+
+                // Hidden IsPrimaryTenant (always false for children)
+                let isPrimaryHidden = card.querySelector('.is-primary-hidden');
+                if (!isPrimaryHidden) {
+                    isPrimaryHidden = document.createElement('input');
+                    isPrimaryHidden.type = 'hidden';
+                    isPrimaryHidden.className = 'is-primary-hidden';
+                    card.appendChild(isPrimaryHidden);
+                }
+                isPrimaryHidden.name = `Residents[${k}].IsPrimaryTenant`;
+                isPrimaryHidden.value = 'false';
+            });
+        }
+
+        // Event Listeners for count changes
+        adultCountSelect.addEventListener('change', updateResidentForms);
+        childCountSelect.addEventListener('change', updateResidentForms);
+
+        // Before submit, ensure member count is valid and inputs are properly synced
+        document.getElementById('multiResidentForm').addEventListener('submit', function (e) {
+            const rawAdults = parseInt(adultCountSelect.value, 10);
+            const targetAdults = isNaN(rawAdults) ? (isAddMemberMode ? 0 : 1) : rawAdults;
+            const targetChildren = parseInt(childCountSelect.value, 10) || 0;
+            if (targetAdults + targetChildren < 1) {
+                e.preventDefault();
+                alert('অনুগ্রহ করে কমপক্ষে একজন সদস্য (প্রাপ্তবয়স্ক বা শিশু) নির্বাচন করুন।');
+                return false;
+            }
+            reindexAllInputs();
+        });
+
+        // Initialize on page load
+        updateResidentForms();
+    </script>
+}

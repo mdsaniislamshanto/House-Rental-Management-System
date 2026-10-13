@@ -1,0 +1,640 @@
+@model Shanto_VilaManagement_System.ViewModels.PaymentFilterViewModel
+@{
+    ViewData["Title"] = "পেমেন্ট ও বকেয়া ব্যবস্থাপনা";
+}
+
+<!-- Page Header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-cash-stack text-primary me-2"></i>পেমেন্ট ও বকেয়া ব্যবস্থাপনা
+        </h1>
+        <p class="text-secondary mb-0 small">ভাড়াটিয়াদের বিল পরিশোধের স্থিতি, জমার তারিখ এবং বকেয়া তালিকা পরিচালনা করুন</p>
+    </div>
+
+    <!-- Quick Status Filter Pills -->
+    <div class="btn-group btn-group-sm">
+        <a asp-action="Index" asp-route-status="All" 
+           class="btn @(Model.Status == "All" || string.IsNullOrEmpty(Model.Status) ? "btn-primary" : "btn-light border")">
+            সব বিল (@BanglaHelper.ToBanglaDigits(Model.Bills.Count))
+        </a>
+        <a asp-action="Index" asp-route-status="Paid" 
+           class="btn @(Model.Status == "Paid" ? "btn-success" : "btn-light border")">
+            🟢 পরিশোধিত
+        </a>
+        <a asp-action="Index" asp-route-status="Partial" 
+           class="btn @(Model.Status == "Partial" ? "btn-warning text-dark" : "btn-light border")">
+            🟡 আংশিক পরিশোধ
+        </a>
+        <a asp-action="Index" asp-route-status="Unpaid" 
+           class="btn @(Model.Status == "Unpaid" ? "btn-danger" : "btn-light border")">
+            🔴 বকেয়া
+        </a>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="custom-card mb-4">
+    <div class="card-body-custom py-3">
+        <form method="get" class="row g-2 align-items-center">
+            <input type="hidden" name="status" value="@Model.Status" />
+
+            <div class="col-md-3">
+                <input type="text" name="searchTenant" class="form-control form-control-sm" 
+                       placeholder="ভাড়াটিয়ার নাম দিয়ে খুঁজুন..." value="@Model.SearchTenant" />
+            </div>
+
+            <div class="col-md-3">
+                <select name="roomId" class="form-select form-select-sm">
+                    <option value="">— সকল রুম —</option>
+                    @foreach (var r in Model.Rooms)
+                    {
+                        if (Model.RoomId == r.Id)
+                        {
+                            <option value="@r.Id" selected>রুম @BanglaHelper.ToBanglaDigits(r.RoomNumber)</option>
+                        }
+                        else
+                        {
+                            <option value="@r.Id">রুম @BanglaHelper.ToBanglaDigits(r.RoomNumber)</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <select name="month" class="form-select form-select-sm">
+                    <option value="">— সকল মাস —</option>
+                    @for (int m = 1; m <= 12; m++)
+                    {
+                        if (Model.Month == m)
+                        {
+                            <option value="@m" selected>@BanglaHelper.GetBanglaMonthName(m)</option>
+                        }
+                        else
+                        {
+                            <option value="@m">@BanglaHelper.GetBanglaMonthName(m)</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <select name="year" class="form-select form-select-sm">
+                    <option value="">— সকল বছর —</option>
+                    @for (int y = DateTime.Now.Year - 2; y <= DateTime.Now.Year + 1; y++)
+                    {
+                        if (Model.Year == y)
+                        {
+                            <option value="@y" selected>@BanglaHelper.ToBanglaDigits(y)</option>
+                        }
+                        else
+                        {
+                            <option value="@y">@BanglaHelper.ToBanglaDigits(y)</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-outline-custom w-100 justify-content-center">
+                    <i class="bi bi-funnel"></i> ফিল্টার
+                </button>
+                <a asp-action="Index" class="btn btn-sm btn-light border" title="রিসেট">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Financial Summary Strip -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="p-3 bg-light rounded-3 border">
+            <span class="text-secondary small fw-semibold">ফিল্টারকৃত মোট বিল</span>
+            <div class="fs-4 fw-bold text-dark mt-1">@BanglaHelper.ToBanglaCurrency(Model.TotalAmount)</div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="p-3 rounded-3 border" style="background: #f0fdf4; border-color: #bbf7d0 !important;">
+            <span class="text-success small fw-semibold">মোট পরিশোধিত টাকা</span>
+            <div class="fs-4 fw-bold text-success mt-1">@BanglaHelper.ToBanglaCurrency(Model.TotalPaidAmount)</div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="p-3 rounded-3 border" style="background: #fef2f2; border-color: #fecaca !important;">
+            <span class="text-danger small fw-semibold">মোট বকেয়া পাওনা টাকা</span>
+            <div class="fs-4 fw-bold text-danger mt-1">@BanglaHelper.ToBanglaCurrency(Model.TotalDueAmount)</div>
+        </div>
+    </div>
+</div>
+
+<!-- Payments Table (Requirement #25) -->
+<div class="custom-card">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">
+            <i class="bi bi-table text-primary"></i>
+            <span>পেমেন্ট তালিকা (@BanglaHelper.ToBanglaDigits(Model.Bills.Count) টি বিল)</span>
+        </h2>
+    </div>
+
+    <div class="card-body-custom p-0">
+        <!-- Desktop Table View -->
+        <div class="d-none d-md-block">
+            <div class="table-responsive border-0">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>রুম নম্বর</th>
+                            <th>ভাড়াটিয়া</th>
+                            <th>বিলের মাস</th>
+                            <th>মোট বিল</th>
+                            <th>অবস্থা</th>
+                            <th>পরিশোধের তারিখ</th>
+                            <th class="text-end">পরিশোধ চিহ্নিতকরণ ও একশন</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Bills.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    কোনো পেমেন্ট রেকর্ড পাওয়া যায়নি।
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var bill in Model.Bills)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-controller="Rooms" asp-action="Details" asp-route-id="@bill.RoomId" class="fw-bold text-primary text-decoration-none">
+                                            রুম @BanglaHelper.ToBanglaDigits(bill.Room?.RoomNumber ?? bill.RoomId.ToString())
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold text-dark">@bill.TenantName</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">@bill.BillingMonth</span>
+                                    </td>
+                                    <td class="fw-bold text-dark fs-6">
+                                        @BanglaHelper.ToBanglaCurrency(bill.TotalBill)
+                                        @if (bill.OtherBill > 0)
+                                        {
+                                            <div class="small text-secondary" style="font-size: 0.75rem;">
+                                                (অন্যান্য: @BanglaHelper.ToBanglaCurrency(bill.OtherBill))
+                                            </div>
+                                        }
+                                        @if (bill.PreviousDue > 0)
+                                        {
+                                            <div class="small text-danger" style="font-size: 0.75rem;" title="পূর্বের বকেয়া সহ">
+                                                (পূর্বের বকেয়া: @BanglaHelper.ToBanglaCurrency(bill.PreviousDue))
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (bill.IsPaid)
+                                        {
+                                            <span class="badge-paid">
+                                                <i class="bi bi-check-circle-fill"></i> পরিশোধিত
+                                            </span>
+                                        }
+                                        else if (bill.IsPartial)
+                                        {
+                                            <span class="badge-partial">
+                                                <i class="bi bi-pie-chart-fill"></i> আংশিক পরিশোধ
+                                            </span>
+                                            <div class="small text-danger fw-bold mt-1">
+                                                বাকি: @BanglaHelper.ToBanglaCurrency(bill.EffectiveDueAmount)
+                                            </div>
+                                            <div class="small text-muted" style="font-size: 0.75rem;">
+                                                (জমা: @BanglaHelper.ToBanglaCurrency(bill.EffectivePaidAmount))
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-unpaid">
+                                                <i class="bi bi-clock-history"></i> বকেয়া
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if ((bill.IsPaid || bill.IsPartial) && bill.PaidDate.HasValue)
+                                        {
+                                            <span class="fw-semibold @(bill.IsPaid ? "text-success" : "text-warning")">
+                                                @BanglaHelper.FormatBanglaDate(bill.PaidDate)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-inline-flex gap-1">
+                                            @if (!bill.IsPaid)
+                                            {
+                                                <!-- Mark as Paid / Partial Button (Opens Modal) -->
+                                                <button type="button" class="btn btn-sm @(bill.IsPartial ? "btn-warning text-dark fw-semibold" : "btn-success") mark-paid-btn" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#markPaidModal"
+                                                        data-billid="@bill.Id"
+                                                        data-room="@(bill.Room?.RoomNumber ?? bill.RoomId.ToString())"
+                                                        data-tenant="@bill.TenantName"
+                                                        data-month="@bill.BillingMonth"
+                                                        data-amount="@BanglaHelper.ToBanglaCurrency(bill.TotalBill)"
+                                                        data-rawtotal="@bill.TotalBill"
+                                                        data-rawpaid="@bill.EffectivePaidAmount"
+                                                        data-rawdue="@bill.EffectiveDueAmount"
+                                                        data-ispartial="@(bill.IsPartial ? "true" : "false")">
+                                                    @if (bill.IsPartial)
+                                                    {
+                                                        <i class="bi bi-pencil-square"></i> <span>পেমেন্ট আপডেট</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-check2-circle"></i> <span>পরিশোধ চিহ্নিত করুন</span>
+                                                    }
+                                                </button>
+
+                                                @if (bill.IsPartial)
+                                                {
+                                                    <!-- Revert to Unpaid -->
+                                                    <form asp-action="MarkUnpaid" method="post" class="d-inline" onsubmit="return confirm('আপনি কি এই বিলটি পুনরায় সম্পূর্ণ বকেয়া করতে চান?');">
+                                                        <input type="hidden" name="billId" value="@bill.Id" />
+                                                        <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="সম্পূর্ণ বকেয়া করুন">
+                                                            <i class="bi bi-x-circle"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <!-- Revert to Unpaid -->
+                                                <form asp-action="MarkUnpaid" method="post" class="d-inline" onsubmit="return confirm('আপনি কি এই বিলটি পুনরায় বকেয়া হিসেবে চিহ্নিত করতে চান?');">
+                                                    <input type="hidden" name="billId" value="@bill.Id" />
+                                                    <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="বকেয়া করুন">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                </form>
+                                            }
+
+                                            <!-- Room History Button -->
+                                            <a asp-action="RoomHistory" asp-route-roomId="@bill.RoomId" class="btn btn-sm btn-light border" title="এই রুমের সম্পূর্ণ ইতিহাস">
+                                                <i class="bi bi-clock-history text-secondary"></i>
+                                            </a>
+
+                                            <!-- Download PDF -->
+                                            <a asp-controller="Bills" asp-action="DownloadPdf" asp-route-id="@bill.Id" class="btn btn-sm btn-light border text-danger" title="PDF ডাউনলোড" target="_blank">
+                                                <i class="bi bi-file-earmark-pdf"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="d-md-none p-3">
+            @if (!Model.Bills.Any())
+            {
+                <div class="text-center py-4 text-muted bg-light rounded-3 border">
+                    কোনো পেমেন্ট রেকর্ড পাওয়া যায়নি।
+                </div>
+            }
+            else
+            {
+                @foreach (var bill in Model.Bills)
+                {
+                    <div class="mobile-data-card">
+                        <!-- Top Row: Room & Status Badge -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <a asp-controller="Rooms" asp-action="Details" asp-route-id="@bill.RoomId" class="fw-bold text-primary text-decoration-none fs-6">
+                                <i class="bi bi-door-open-fill me-1"></i>রুম @BanglaHelper.ToBanglaDigits(bill.Room?.RoomNumber ?? bill.RoomId.ToString())
+                            </a>
+                            <div>
+                                @if (bill.IsPaid)
+                                {
+                                    <span class="badge-paid">
+                                        <i class="bi bi-check-circle-fill"></i> পরিশোধিত
+                                    </span>
+                                }
+                                else if (bill.IsPartial)
+                                {
+                                    <span class="badge-partial">
+                                        <i class="bi bi-pie-chart-fill"></i> আংশিক পরিশোধ
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge-unpaid">
+                                        <i class="bi bi-clock-history"></i> বকেয়া
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Tenant Name & Month -->
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <div>
+                                <span class="text-muted small">ভাড়াটিয়া:</span>
+                                <span class="fw-semibold text-dark ms-1">@bill.TenantName</span>
+                            </div>
+                            <span class="badge bg-light text-dark border">
+                                <i class="bi bi-calendar3 me-1"></i>@bill.BillingMonth
+                            </span>
+                        </div>
+
+                        <!-- Payment amounts info -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <span class="text-muted small">মোট বিল:</span>
+                                @if (bill.OtherBill > 0)
+                                {
+                                    <div class="small text-secondary fw-semibold" style="font-size: 0.75rem;">(অন্যান্য: @BanglaHelper.ToBanglaCurrency(bill.OtherBill))</div>
+                                }
+                            </div>
+                            <span class="fw-bold text-dark fs-6">@BanglaHelper.ToBanglaCurrency(bill.TotalBill)</span>
+                        </div>
+
+                        @if (bill.IsPartial)
+                        {
+                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded" style="background: #fffbeb; border: 1px solid #fde68a;">
+                                <span class="small fw-semibold text-dark">জমা: @BanglaHelper.ToBanglaCurrency(bill.EffectivePaidAmount)</span>
+                                <span class="small fw-bold text-danger">বাকি: @BanglaHelper.ToBanglaCurrency(bill.EffectiveDueAmount)</span>
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-between align-items-center mb-3 text-muted small">
+                            <span>পরিশোধের তারিখ:</span>
+                            <span class="fw-semibold">
+                                @if ((bill.IsPaid || bill.IsPartial) && bill.PaidDate.HasValue)
+                                {
+                                    <span class="@(bill.IsPaid ? "text-success" : "text-warning")">
+                                        @BanglaHelper.FormatBanglaDate(bill.PaidDate)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>—</span>
+                                }
+                            </span>
+                        </div>
+
+                        <!-- Mobile Action Buttons -->
+                        <div class="d-flex gap-2 pt-1">
+                            @if (!bill.IsPaid)
+                            {
+                                <button type="button" class="btn btn-sm @(bill.IsPartial ? "btn-warning text-dark fw-semibold" : "btn-success") flex-fill py-2 mark-paid-btn" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#markPaidModal"
+                                        data-billid="@bill.Id"
+                                        data-room="@(bill.Room?.RoomNumber ?? bill.RoomId.ToString())"
+                                        data-tenant="@bill.TenantName"
+                                        data-month="@bill.BillingMonth"
+                                        data-amount="@BanglaHelper.ToBanglaCurrency(bill.TotalBill)"
+                                        data-rawtotal="@bill.TotalBill"
+                                        data-rawpaid="@bill.EffectivePaidAmount"
+                                        data-rawdue="@bill.EffectiveDueAmount"
+                                        data-ispartial="@(bill.IsPartial ? "true" : "false")">
+                                    <i class="bi bi-cash-stack me-1"></i> @(bill.IsPartial ? "পেমেন্ট আপডেট" : "পরিশোধ চিহ্নিত করুন")
+                                </button>
+                            }
+                            else
+                            {
+                                <form asp-action="MarkUnpaid" method="post" class="flex-fill" onsubmit="return confirm('আপনি কি এই বিলটি পুনরায় বকেয়া হিসেবে চিহ্নিত করতে চান?');">
+                                    <input type="hidden" name="billId" value="@bill.Id" />
+                                    <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100 py-2">
+                                        <i class="bi bi-arrow-counterclockwise me-1"></i> পুনরায় বকেয়া করুন
+                                    </button>
+                                </form>
+                            }
+
+                            <a asp-action="RoomHistory" asp-route-roomId="@bill.RoomId" class="btn btn-sm btn-outline-secondary py-2 px-3" title="রুমের সম্পূর্ণ ইতিহাস">
+                                <i class="bi bi-clock-history"></i>
+                            </a>
+
+                            <a asp-controller="Bills" asp-action="DownloadPdf" asp-route-id="@bill.Id" class="btn btn-sm btn-outline-danger py-2 px-3" title="PDF ডাউনলোড" target="_blank">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                            </a>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Mark as Paid with Full vs Partial Option -->
+<div class="modal fade" id="markPaidModal" tabindex="-1" aria-labelledby="markPaidModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="MarkPaid" method="post" id="markPaidForm">
+                <input type="hidden" name="billId" id="modalBillId" />
+                <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="markPaidModalLabel">
+                        <i class="bi bi-cash-coin text-success me-2"></i>বিল পরিশোধ গ্রহণ / চিহ্নিতকরণ
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="p-3 bg-light rounded-3 mb-3 border">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-secondary small">রুম নম্বর:</span>
+                            <strong id="modalRoom" class="text-dark"></strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-secondary small">ভাড়াটিয়ার নাম:</span>
+                            <strong id="modalTenant" class="text-dark"></strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-secondary small">বিলের মাস:</span>
+                            <strong id="modalMonth" class="text-dark"></strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-secondary small">মোট প্রদেয় বিল:</span>
+                            <strong id="modalAmount" class="text-primary fs-5"></strong>
+                        </div>
+                    </div>
+
+                    <!-- Payment Type Selection: Full vs Partial -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark d-block">
+                            <i class="bi bi-wallet2 text-primary me-1"></i>পেমেন্টের ধরন নির্বাচন করুন *
+                        </label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="paymentType" id="payTypeFull" value="Full" checked autocomplete="off">
+                            <label class="btn btn-outline-success" for="payTypeFull">
+                                <i class="bi bi-check-circle me-1"></i>পূর্ণ পরিশোধ (Full)
+                            </label>
+
+                            <input type="radio" class="btn-check" name="paymentType" id="payTypePartial" value="Partial" autocomplete="off">
+                            <label class="btn btn-outline-warning text-dark" for="payTypePartial">
+                                <i class="bi bi-pie-chart me-1"></i>আংশিক পরিশোধ (Partial)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Partial Payment Input Section -->
+                    <div id="partialAmountSection" class="mb-3 p-3 rounded-3 border" style="display: none; background-color: #fffbeb; border-color: #fde68a !important;">
+                        <label class="form-label fw-bold text-dark" for="modalPaidAmount">
+                            <i class="bi bi-cash-stack text-warning me-1"></i>পরিশোধের পরিমাণ (কত টাকা দিয়েছে) *
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text fw-bold">৳</span>
+                            <input type="number" step="0.01" min="1" class="form-control form-control-lg fw-bold text-primary" 
+                                   id="modalPaidAmount" name="paidAmount" placeholder="পরিশোধিত টাকার পরিমাণ লিখুন" />
+                        </div>
+                        <div class="form-text small text-muted mt-1">
+                            ভাড়াটিয়া বর্তমানে যে টাকা পরিশোধ করেছেন তা লিখুন।
+                        </div>
+
+                        <!-- Real-time Balance Box -->
+                        <div class="mt-3 p-2 bg-white rounded border">
+                            <div class="d-flex justify-content-between align-items-center mb-1 small">
+                                <span class="text-secondary">মোট বিল:</span>
+                                <span class="fw-semibold text-dark" id="calcTotalBill">৳ ০</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-1 small">
+                                <span class="text-secondary">জমা দিচ্ছেন:</span>
+                                <span class="fw-semibold text-success" id="calcPaidAmount">৳ ০</span>
+                            </div>
+                            <hr class="my-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-danger">অবশিষ্ট বকেয়া থাকবে:</span>
+                                <span class="fs-5 fw-bold text-danger" id="calcRemainingDue">৳ ০</span>
+                            </div>
+                        </div>
+                        <div id="partialError" class="text-danger small mt-2 fw-semibold" style="display: none;"></div>
+                    </div>
+
+                    <!-- Paid Date -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">
+                            <i class="bi bi-calendar-check text-primary me-1"></i>পরিশোধের তারিখ (Paid Date) *
+                        </label>
+                        <input type="date" name="paidDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        <div class="form-text small">
+                            ভাড়াটিয়া যেদিন বিল পরিশোধ করেছেন সেই তারিখ নির্বাচন করুন।
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">বাতিল</button>
+                    <button type="submit" id="modalSubmitBtn" class="btn btn-success">
+                        <i class="bi bi-check-circle-fill"></i> সংরক্ষণ করুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentTotal = 0;
+
+        document.querySelectorAll('.mark-paid-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const billId = this.dataset.billid;
+                const room = this.dataset.room;
+                const tenant = this.dataset.tenant;
+                const month = this.dataset.month;
+                const amount = this.dataset.amount;
+                const rawTotal = parseFloat(this.dataset.rawtotal) || 0;
+                const rawPaid = parseFloat(this.dataset.rawpaid) || 0;
+                const isPartial = this.dataset.ispartial === 'true';
+
+                currentTotal = rawTotal;
+
+                document.getElementById('modalBillId').value = billId;
+                document.getElementById('modalRoom').textContent = 'রুম ' + room;
+                document.getElementById('modalTenant').textContent = tenant;
+                document.getElementById('modalMonth').textContent = month;
+                document.getElementById('modalAmount').textContent = amount;
+
+                if (isPartial) {
+                    document.getElementById('payTypePartial').checked = true;
+                    document.getElementById('partialAmountSection').style.display = 'block';
+                    document.getElementById('modalPaidAmount').value = rawPaid > 0 ? rawPaid : '';
+                    document.getElementById('modalPaidAmount').required = true;
+                } else {
+                    document.getElementById('payTypeFull').checked = true;
+                    document.getElementById('partialAmountSection').style.display = 'none';
+                    document.getElementById('modalPaidAmount').value = '';
+                    document.getElementById('modalPaidAmount').required = false;
+                }
+
+                updateCalculations();
+            });
+        });
+
+        document.getElementById('payTypeFull').addEventListener('change', function () {
+            if (this.checked) {
+                document.getElementById('partialAmountSection').style.display = 'none';
+                document.getElementById('modalPaidAmount').required = false;
+                document.getElementById('modalPaidAmount').value = '';
+                updateCalculations();
+            }
+        });
+
+        document.getElementById('payTypePartial').addEventListener('change', function () {
+            if (this.checked) {
+                document.getElementById('partialAmountSection').style.display = 'block';
+                document.getElementById('modalPaidAmount').required = true;
+                updateCalculations();
+                document.getElementById('modalPaidAmount').focus();
+            }
+        });
+
+        document.getElementById('modalPaidAmount').addEventListener('input', updateCalculations);
+
+        function updateCalculations() {
+            const total = currentTotal;
+            const isPartialSelected = document.getElementById('payTypePartial').checked;
+            const paidInputVal = document.getElementById('modalPaidAmount').value.trim();
+            const paidInput = parseFloat(paidInputVal) || 0;
+            const remaining = Math.max(0, total - paidInput);
+
+            document.getElementById('calcTotalBill').textContent = '৳ ' + total.toFixed(2);
+            document.getElementById('calcPaidAmount').textContent = '৳ ' + paidInput.toFixed(2);
+            document.getElementById('calcRemainingDue').textContent = '৳ ' + remaining.toFixed(2);
+
+            const err = document.getElementById('partialError');
+            const submitBtn = document.getElementById('modalSubmitBtn');
+
+            if (isPartialSelected) {
+                if (paidInputVal === '' || paidInput <= 0) {
+                    err.textContent = 'অনুগ্রহ করে ০ টাকার বেশি পরিশোধের পরিমাণ লিখুন।';
+                    err.style.display = 'block';
+                    submitBtn.disabled = true;
+                } else if (paidInput >= total) {
+                    err.textContent = 'পরিশোধের পরিমাণ মোট বিলের সমান বা বেশি হলে পূর্ণ পরিশোধ হবে।';
+                    err.style.display = 'block';
+                    submitBtn.disabled = false;
+                } else {
+                    err.style.display = 'none';
+                    submitBtn.disabled = false;
+                }
+            } else {
+                err.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        }
+    </script>
+}

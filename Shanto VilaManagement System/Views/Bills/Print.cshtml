@@ -1,0 +1,293 @@
+@model Shanto_VilaManagement_System.Models.MonthlyBill
+@{
+    var setting = ViewBag.Setting as Shanto_VilaManagement_System.Models.Setting;
+    ViewData["Title"] = $"মাসিক বিল রশিদ - রুম {Model.Room?.RoomNumber}";
+    Layout = null; // Clean standalone invoice layout for printing
+}
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>মাসিক বিল রশিদ - শান্ত ভিলা</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Kalpurush', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            padding: 2rem 1rem;
+        }
+
+        .bill-container {
+            max-width: 520px;
+            margin: 0 auto;
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 2.2rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+        }
+
+        .bill-header {
+            text-align: center;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .bill-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .bill-subtitle {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #334155;
+            margin-top: 0.35rem;
+        }
+
+        .meta-table {
+            width: 100%;
+            margin-bottom: 1.2rem;
+            font-size: 1.05rem;
+        }
+
+        .meta-table td {
+            padding: 0.35rem 0;
+        }
+
+        .section-divider {
+            border-top: 1px dashed #64748b;
+            margin: 1rem 0;
+        }
+
+        .section-header {
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: #1e293b;
+            margin-bottom: 0.75rem;
+        }
+
+        .calc-table {
+            width: 100%;
+            font-size: 1.05rem;
+        }
+
+        .calc-table td {
+            padding: 0.35rem 0;
+        }
+
+        .total-box {
+            border-top: 2px solid #0f172a;
+            border-bottom: 2px solid #0f172a;
+            padding: 0.65rem 0;
+            margin-top: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .status-badge-print {
+            display: inline-block;
+            padding: 0.25rem 0.65rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .print-actions {
+            max-width: 520px;
+            margin: 0 auto 1.5rem auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @@media print {
+            body {
+                background: #ffffff;
+                padding: 0;
+            }
+            .print-actions {
+                display: none !important;
+            }
+            .bill-container {
+                border: 1px solid #000000;
+                box-shadow: none;
+                max-width: 100%;
+                width: 100%;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Print Action Bar (Hidden during actual print) -->
+    <div class="print-actions">
+        <a asp-controller="Bills" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> বিলে ফিরে যান
+        </a>
+
+        <div class="d-flex gap-2">
+            <a asp-controller="Bills" asp-action="DownloadPdf" asp-route-id="@Model.Id" class="btn btn-danger btn-sm" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i> বাংলা PDF ডাউনলোড
+            </a>
+            <button onclick="window.print()" class="btn btn-primary btn-sm">
+                <i class="bi bi-printer"></i> প্রিন্ট করুন
+            </button>
+        </div>
+    </div>
+
+    <!-- Official Bangla Bill (Requirement #29) -->
+    <div class="bill-container">
+        <!-- Header -->
+        <div class="bill-header">
+            <h1 class="bill-title">@(setting?.HouseName ?? "শান্ত ভিলা")</h1>
+            @if (!string.IsNullOrWhiteSpace(setting?.HouseAddress))
+            {
+                <div class="text-secondary small mt-1">@setting.HouseAddress</div>
+            }
+            <div class="bill-subtitle">মাসিক বিল</div>
+        </div>
+
+        <!-- Meta Information -->
+        <table class="meta-table">
+            <tr>
+                <td style="width: 45%;" class="fw-semibold">রুম নম্বর</td>
+                <td style="width: 5%;">:</td>
+                <td class="fw-bold">@BanglaHelper.ToBanglaDigits(Model.Room?.RoomNumber ?? Model.RoomId.ToString())</td>
+            </tr>
+            <tr>
+                <td class="fw-semibold">ভাড়াটিয়ার নাম</td>
+                <td>:</td>
+                <td class="fw-bold">@Model.TenantName</td>
+            </tr>
+            <tr>
+                <td class="fw-semibold">বিলের মাস</td>
+                <td>:</td>
+                <td class="fw-bold">@Model.BillingMonth</td>
+            </tr>
+            <tr>
+                <td class="fw-semibold">পরিশোধের অবস্থা</td>
+                <td>:</td>
+                <td>
+                    @if (Model.IsPaid)
+                    {
+                        <span class="text-success fw-bold">
+                            পরিশোধিত (তারিখ: @BanglaHelper.FormatBanglaDate(Model.PaidDate))
+                        </span>
+                    }
+                    else if (Model.IsPartial)
+                    {
+                        <span class="text-warning fw-bold">
+                            আংশিক পরিশোধ (বাকি: @BanglaHelper.ToBanglaCurrency(Model.EffectiveDueAmount))
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="text-danger fw-bold">
+                            বকেয়া
+                        </span>
+                    }
+                </td>
+            </tr>
+        </table>
+
+        <!-- Electricity Bill Details Section -->
+        <div class="section-divider"></div>
+        <div class="section-header">বিদ্যুৎ বিলের বিবরণ</div>
+
+        <table class="calc-table">
+            <tr>
+                <td style="width: 55%;">পূর্বের মিটার রিডিং</td>
+                <td style="width: 5%;">:</td>
+                <td class="text-end">@BanglaHelper.ToBanglaNumber(Model.PreviousReading, true)</td>
+            </tr>
+            <tr>
+                <td>বর্তমান মিটার রিডিং</td>
+                <td>:</td>
+                <td class="text-end">@BanglaHelper.ToBanglaNumber(Model.CurrentReading, true)</td>
+            </tr>
+            <tr>
+                <td class="fw-semibold">ব্যবহৃত ইউনিট</td>
+                <td>:</td>
+                <td class="text-end fw-bold">@BanglaHelper.ToBanglaNumber(Model.UsedUnit, true)</td>
+            </tr>
+            <tr>
+                <td class="fw-semibold">বিদ্যুৎ বিল</td>
+                <td>:</td>
+                <td class="text-end fw-bold">@BanglaHelper.ToBanglaCurrency(Model.ElectricityBill)</td>
+            </tr>
+        </table>
+
+        <!-- Total Bill Summary Section -->
+        <div class="section-divider"></div>
+
+        <table class="calc-table">
+            <tr>
+                <td style="width: 55%;" class="fw-semibold">রুম ভাড়া</td>
+                <td style="width: 5%;">:</td>
+                <td class="text-end fw-bold">@BanglaHelper.ToBanglaCurrency(Model.RoomRent)</td>
+            </tr>
+            <tr>
+                <td class="fw-semibold">বিদ্যুৎ বিল</td>
+                <td>:</td>
+                <td class="text-end fw-bold">@BanglaHelper.ToBanglaCurrency(Model.ElectricityBill)</td>
+            </tr>
+            @if (Model.OtherBill > 0)
+            {
+                <tr>
+                    <td class="fw-semibold">অন্যান্য বিল</td>
+                    <td>:</td>
+                    <td class="text-end fw-bold">@BanglaHelper.ToBanglaCurrency(Model.OtherBill)</td>
+                </tr>
+            }
+            @if (Model.PreviousDue > 0)
+            {
+                <tr class="text-danger">
+                    <td class="fw-semibold">আগের মাসের বকেয়া</td>
+                    <td>:</td>
+                    <td class="text-end fw-bold">@BanglaHelper.ToBanglaCurrency(Model.PreviousDue)</td>
+                </tr>
+            }
+        </table>
+
+        <!-- Total Bill Box -->
+        <div class="total-box d-flex justify-content-between">
+            <span>মোট প্রদেয় বিল</span>
+            <span class="text-end">: @BanglaHelper.ToBanglaCurrency(Model.TotalBill)</span>
+        </div>
+
+        @if (Model.IsPartial)
+        {
+            <div class="mt-2 p-2 rounded bg-light border small">
+                <div class="d-flex justify-content-between text-success fw-bold">
+                    <span>পরিশোধিত টাকা</span>
+                    <span>: @BanglaHelper.ToBanglaCurrency(Model.EffectivePaidAmount)</span>
+                </div>
+                <div class="d-flex justify-content-between text-danger fw-bold mt-1">
+                    <span>অবশিষ্ট বকেয়া</span>
+                    <span>: @BanglaHelper.ToBanglaCurrency(Model.EffectiveDueAmount)</span>
+                </div>
+            </div>
+        }
+
+        <div class="text-center text-muted small mt-4 pt-3 border-top">
+            শান্ত ভিলা হাউজ ম্যানেজমেন্ট সিস্টেম | মুদ্রণ তারিখ: @BanglaHelper.FormatBanglaDateFull(DateTime.Now)
+        </div>
+    </div>
+
+</body>
+</html>

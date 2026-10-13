@@ -1,0 +1,24 @@
+{
+  "name": "শান্ত ভিলা হাউজ ম্যানেজমেন্ট",
+  "short_name": "শান্ত ভিলা",
+  "description": "শান্ত ভিলা বাড়ি ও ভাড়াটিয়া ম্যানেজমেন্ট সিস্টেম",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

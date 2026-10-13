@@ -1,0 +1,180 @@
+@model IEnumerable<Shanto_VilaManagement_System.Models.MonthlyBill>
+@{
+    ViewData["Title"] = "মিটার রিডিং ইতিহাস";
+    var rooms = ViewBag.Rooms as List<Shanto_VilaManagement_System.Models.Room> ?? new();
+    var selectedRoom = ViewBag.SelectedRoom as Shanto_VilaManagement_System.Models.Room;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-clock-history text-primary me-2"></i>মিটার রিডিং ও বিদ্যুৎ বিলের ইতিহাস
+        </h1>
+        <p class="text-secondary mb-0 small">
+            @if (selectedRoom != null)
+            {
+                <span>রুম @BanglaHelper.ToBanglaDigits(selectedRoom.RoomNumber)-এর পূর্ববর্তী মিটার রিডিং ও বিদ্যুৎ খরচের ইতিহাস</span>
+            }
+            else
+            {
+                <span>সকল রুমের সংরক্ষিত মিটার রিডিং এবং ব্যবহৃত ইউনিটসমূহ</span>
+            }
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <form method="get" class="d-flex align-items-center gap-2">
+            <select name="roomId" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 160px;">
+                <option value="">— সকল রুম —</option>
+                @foreach (var r in rooms)
+                {
+                    if (selectedRoom != null && selectedRoom.Id == r.Id)
+                    {
+                        <option value="@r.Id" selected>রুম @BanglaHelper.ToBanglaDigits(r.RoomNumber)</option>
+                    }
+                    else
+                    {
+                        <option value="@r.Id">রুম @BanglaHelper.ToBanglaDigits(r.RoomNumber)</option>
+                    }
+                }
+            </select>
+            @if (selectedRoom != null)
+            {
+                <a asp-action="History" class="btn btn-sm btn-outline-custom" title="ফিল্টার মুছুন">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            }
+        </form>
+
+        <a asp-action="Index" class="btn btn-primary-custom">
+            <i class="bi bi-speedometer2"></i> নতুন রিডিং এন্ট্রি
+        </a>
+    </div>
+</div>
+
+<div class="custom-card">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">
+            <i class="bi bi-lightning-charge-fill text-warning"></i>
+            <span>সংরক্ষিত রিডিং তালিকা (@BanglaHelper.ToBanglaDigits(Model.Count()) টি)</span>
+        </h2>
+    </div>
+
+    <div class="card-body-custom p-0">
+        <!-- Desktop Table View -->
+        <div class="d-none d-md-block">
+            <div class="table-responsive border-0">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>রুম নম্বর</th>
+                            <th>ভাড়াটিয়া</th>
+                            <th>বিলের মাস</th>
+                            <th>পূর্বের রিডিং</th>
+                            <th>বর্তমান রিডিং</th>
+                            <th>ব্যবহৃত ইউনিট</th>
+                            <th>ইউনিট রেট (স্ন্যাপশট)</th>
+                            <th>বিদ্যুৎ বিল</th>
+                            <th class="text-end">বিল দেখুন</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center py-4 text-muted">
+                                    কোনো রিডিং রেকর্ড পাওয়া যায়নি।
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var bill in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-controller="Rooms" asp-action="Details" asp-route-id="@bill.RoomId" class="fw-bold text-primary text-decoration-none">
+                                            রুম @BanglaHelper.ToBanglaDigits(bill.Room?.RoomNumber ?? bill.RoomId.ToString())
+                                        </a>
+                                    </td>
+                                    <td>@bill.TenantName</td>
+                                    <td><span class="badge bg-light text-dark border">@bill.BillingMonth</span></td>
+                                    <td>@BanglaHelper.ToBanglaNumber(bill.PreviousReading, true)</td>
+                                    <td>@BanglaHelper.ToBanglaNumber(bill.CurrentReading, true)</td>
+                                    <td><span class="badge bg-primary text-white">@BanglaHelper.ToBanglaNumber(bill.UsedUnit, true) ইউনিট</span></td>
+                                    <td class="text-muted small">@BanglaHelper.ToBanglaCurrency(bill.UnitPrice)</td>
+                                    <td class="fw-bold text-info">@BanglaHelper.ToBanglaCurrency(bill.ElectricityBill)</td>
+                                    <td class="text-end">
+                                        <a asp-controller="Bills" asp-action="Details" asp-route-id="@bill.Id" class="btn btn-sm btn-light">
+                                            <i class="bi bi-eye text-primary"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="d-md-none p-3">
+            @if (!Model.Any())
+            {
+                <div class="text-center py-4 text-muted bg-light rounded-3 border">
+                    কোনো রিডিং রেকর্ড পাওয়া যায়নি।
+                </div>
+            }
+            else
+            {
+                @foreach (var bill in Model)
+                {
+                    <div class="mobile-data-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <a asp-controller="Rooms" asp-action="Details" asp-route-id="@bill.RoomId" class="fw-bold text-primary text-decoration-none fs-6">
+                                <i class="bi bi-door-open-fill me-1"></i>রুম @BanglaHelper.ToBanglaDigits(bill.Room?.RoomNumber ?? bill.RoomId.ToString())
+                            </a>
+                            <span class="badge bg-light text-dark border">
+                                <i class="bi bi-calendar3 me-1"></i>@bill.BillingMonth
+                            </span>
+                        </div>
+
+                        <div class="mb-2 pb-2 border-bottom">
+                            <span class="text-muted small">ভাড়াটিয়া:</span>
+                            <span class="fw-semibold text-dark ms-1">@bill.TenantName</span>
+                        </div>
+
+                        <div class="card-metrics-grid">
+                            <div class="metric-box">
+                                <div class="metric-label">পূর্বের রিডিং</div>
+                                <div class="metric-value">@BanglaHelper.ToBanglaNumber(bill.PreviousReading, true)</div>
+                            </div>
+                            <div class="metric-box">
+                                <div class="metric-label">বর্তমান রিডিং</div>
+                                <div class="metric-value">@BanglaHelper.ToBanglaNumber(bill.CurrentReading, true)</div>
+                            </div>
+                            <div class="metric-box">
+                                <div class="metric-label">ব্যবহৃত ইউনিট</div>
+                                <div class="metric-value text-info">@BanglaHelper.ToBanglaNumber(bill.UsedUnit, true)</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-muted small">ইউনিট রেট: @BanglaHelper.ToBanglaCurrency(bill.UnitPrice)</span>
+                            <div>
+                                <span class="text-muted small me-1">বিদ্যুৎ বিল:</span>
+                                <span class="fs-6 fw-bold text-info">@BanglaHelper.ToBanglaCurrency(bill.ElectricityBill)</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <a asp-controller="Bills" asp-action="Details" asp-route-id="@bill.Id" class="btn btn-sm btn-outline-primary flex-fill py-2">
+                                <i class="bi bi-eye me-1"></i> বিস্তারিত বিল দেখুন
+                            </a>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>

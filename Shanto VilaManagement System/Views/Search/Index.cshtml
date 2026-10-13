@@ -1,0 +1,356 @@
+@model Shanto_VilaManagement_System.ViewModels.SearchViewModel
+@{
+    ViewData["Title"] = "অনুসন্ধান";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Search Input Bar -->
+        <div class="custom-card mb-4">
+            <div class="card-body-custom p-4">
+                <h1 class="h4 fw-bold text-dark mb-3 text-center">
+                    <i class="bi bi-search text-primary me-2"></i>সিস্টেম অনুসন্ধান
+                </h1>
+                <p class="text-secondary text-center small mb-4">
+                    রুম নম্বর (১০১ বা 101), ভাড়াটিয়ার নাম (রহিম), বা মোবাইল নম্বর (০১৭১১ বা 01711) দিয়ে দ্রুত খুঁজুন
+                </p>
+
+                <form method="get" class="d-flex gap-2">
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" name="q" class="form-control border-start-0 ps-0" 
+                               placeholder="রুম নম্বর, ভাড়াটিয়ার নাম, ফোন নম্বর লিখুন..." 
+                               value="@Model.Query" autofocus />
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom px-4">
+                        অনুসন্ধান
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Query))
+        {
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold text-dark mb-0">
+                    "<strong>@Model.Query</strong>" এর ফলাফল:
+                </h5>
+                <span class="text-muted small">
+                    মোট @BanglaHelper.ToBanglaDigits(Model.MatchedRooms.Count + Model.MatchedResidents.Count + Model.MatchedBills.Count) টি ম্যাচ পাওয়া গেছে
+                </span>
+            </div>
+
+            <!-- Matched Rooms -->
+            @if (Model.MatchedRooms.Any())
+            {
+                <div class="custom-card mb-4">
+                    <div class="card-header-custom">
+                        <h2 class="card-title-custom">
+                            <i class="bi bi-door-open-fill text-primary"></i>
+                            <span>রুম (@BanglaHelper.ToBanglaDigits(Model.MatchedRooms.Count) টি)</span>
+                        </h2>
+                    </div>
+                    <div class="card-body-custom p-0">
+                        <!-- Desktop Table -->
+                        <div class="d-none d-md-block">
+                            <div class="table-responsive border-0">
+                                <table class="table-custom">
+                                    <thead>
+                                        <tr>
+                                            <th>রুম নম্বর</th>
+                                            <th>ভাড়া</th>
+                                            <th>মিটার নম্বর</th>
+                                            <th>প্রধান ভাড়াটিয়া</th>
+                                            <th>অবস্থা</th>
+                                            <th class="text-end">বিস্তারিত</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var room in Model.MatchedRooms)
+                                        {
+                                            <tr>
+                                                <td class="fw-bold text-primary">রুম @BanglaHelper.ToBanglaDigits(room.RoomNumber)</td>
+                                                <td>@BanglaHelper.ToBanglaCurrency(room.RoomRent)</td>
+                                                <td>@(room.MeterNumber ?? "—")</td>
+                                                <td>@(room.PrimaryTenant?.Name ?? "খালি / নেই")</td>
+                                                <td><span class="@room.StatusBadgeClass">@room.StatusBangla</span></td>
+                                                <td class="text-end">
+                                                    <a asp-controller="Rooms" asp-action="Details" asp-route-id="@room.Id" class="btn btn-sm btn-light text-primary">
+                                                        <i class="bi bi-arrow-right-circle"></i> রুমে যান
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Cards -->
+                        <div class="d-md-none p-3">
+                            @foreach (var room in Model.MatchedRooms)
+                            {
+                                <div class="mobile-data-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <a asp-controller="Rooms" asp-action="Details" asp-route-id="@room.Id" class="fw-bold text-primary fs-6 text-decoration-none">
+                                            <i class="bi bi-door-open-fill me-1"></i>রুম @BanglaHelper.ToBanglaDigits(room.RoomNumber)
+                                        </a>
+                                        <span class="@room.StatusBadgeClass">@room.StatusBangla</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2 small">
+                                        <span class="text-muted">ভাড়াটিয়া:</span>
+                                        <span class="fw-semibold text-dark">@(room.PrimaryTenant?.Name ?? "খালি / নেই")</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-3 small">
+                                        <span class="text-muted">মাসিক ভাড়া:</span>
+                                        <span class="fw-bold text-dark">@BanglaHelper.ToBanglaCurrency(room.RoomRent)</span>
+                                    </div>
+                                    <a asp-controller="Rooms" asp-action="Details" asp-route-id="@room.Id" class="btn btn-sm btn-outline-primary w-100 py-2">
+                                        <i class="bi bi-arrow-right-circle me-1"></i> রুমে যান
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Matched Residents -->
+            @if (Model.MatchedResidents.Any())
+            {
+                <div class="custom-card mb-4">
+                    <div class="card-header-custom">
+                        <h2 class="card-title-custom">
+                            <i class="bi bi-people-fill text-primary"></i>
+                            <span>ভাড়াটিয়া ও বাসিন্দা (@BanglaHelper.ToBanglaDigits(Model.MatchedResidents.Count) জন)</span>
+                        </h2>
+                    </div>
+                    <div class="card-body-custom p-0">
+                        <!-- Desktop Table -->
+                        <div class="d-none d-md-block">
+                            <div class="table-responsive border-0">
+                                <table class="table-custom">
+                                    <thead>
+                                        <tr>
+                                            <th>নাম</th>
+                                            <th>রুম</th>
+                                            <th>সম্পর্ক</th>
+                                            <th>মোবাইল নম্বর</th>
+                                            <th>পেশা ও প্রতিষ্ঠান</th>
+                                            <th class="text-end">প্রোফাইল</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var res in Model.MatchedResidents)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <span class="fw-bold text-dark">@res.Name</span>
+                                                    @if (res.IsPrimaryTenant)
+                                                    {
+                                                        <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">প্রধান ভাড়াটিয়া</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <a asp-controller="Rooms" asp-action="Details" asp-route-id="@res.RoomId" class="text-decoration-none text-primary fw-semibold">
+                                                        রুম @BanglaHelper.ToBanglaDigits(res.Room?.RoomNumber ?? "")
+                                                    </a>
+                                                </td>
+                                                <td><span class="badge bg-light text-dark border">@res.Relationship</span></td>
+                                                <td><a href="tel:@res.Phone" class="text-dark text-decoration-none">@res.Phone</a></td>
+                                                <td>
+                                                    <div class="small fw-semibold">@(res.Profession ?? "—")</div>
+                                                    <div class="small text-muted">@(res.Organization ?? "")</div>
+                                                </td>
+                                                <td class="text-end">
+                                                    <a asp-controller="Residents" asp-action="Details" asp-route-id="@res.Id" class="btn btn-sm btn-light text-primary">
+                                                        <i class="bi bi-eye"></i> বিস্তারিত
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Cards -->
+                        <div class="d-md-none p-3">
+                            @foreach (var res in Model.MatchedResidents)
+                            {
+                                <div class="mobile-data-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <span class="fw-bold text-dark fs-6">@res.Name</span>
+                                            @if (res.IsPrimaryTenant)
+                                            {
+                                                <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">প্রধান</span>
+                                            }
+                                        </div>
+                                        <a asp-controller="Rooms" asp-action="Details" asp-route-id="@res.RoomId" class="badge bg-light text-primary border text-decoration-none">
+                                            রুম @BanglaHelper.ToBanglaDigits(res.Room?.RoomNumber ?? "")
+                                        </a>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2 small">
+                                        <span class="text-muted">সম্পর্ক:</span>
+                                        <span class="fw-semibold">@res.Relationship</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2 small">
+                                        <span class="text-muted">মোবাইল:</span>
+                                        <a href="tel:@res.Phone" class="fw-semibold text-decoration-none">@res.Phone</a>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(res.Profession))
+                                    {
+                                        <div class="d-flex justify-content-between align-items-center mb-3 small">
+                                            <span class="text-muted">পেশা:</span>
+                                            <span>@res.Profession</span>
+                                        </div>
+                                    }
+                                    <a asp-controller="Residents" asp-action="Details" asp-route-id="@res.Id" class="btn btn-sm btn-outline-primary w-100 py-2">
+                                        <i class="bi bi-eye me-1"></i> বিস্তারিত প্রোফাইল
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Matched Bills -->
+            @if (Model.MatchedBills.Any())
+            {
+                <div class="custom-card mb-4">
+                    <div class="card-header-custom">
+                        <h2 class="card-title-custom">
+                            <i class="bi bi-receipt text-primary"></i>
+                            <span>মাসিক বিল (@BanglaHelper.ToBanglaDigits(Model.MatchedBills.Count) টি)</span>
+                        </h2>
+                    </div>
+                    <div class="card-body-custom p-0">
+                        <!-- Desktop Table -->
+                        <div class="d-none d-md-block">
+                            <div class="table-responsive border-0">
+                                <table class="table-custom">
+                                    <thead>
+                                        <tr>
+                                            <th>রুম</th>
+                                            <th>ভাড়াটিয়া</th>
+                                            <th>বিলের মাস</th>
+                                            <th>মোট বিল</th>
+                                            <th>অবস্থা</th>
+                                            <th class="text-end">রশিদ ও PDF</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var bill in Model.MatchedBills)
+                                        {
+                                            <tr>
+                                                <td class="fw-bold">রুম @BanglaHelper.ToBanglaDigits(bill.Room?.RoomNumber ?? bill.RoomId.ToString())</td>
+                                                <td>@bill.TenantName</td>
+                                                <td><span class="badge bg-light text-dark border">@bill.BillingMonth</span></td>
+                                                <td class="fw-bold text-dark">
+                                                    @BanglaHelper.ToBanglaCurrency(bill.TotalBill)
+                                                    @if (bill.OtherBill > 0)
+                                                    {
+                                                        <div class="small text-secondary" style="font-size: 0.75rem;">
+                                                            (অন্যান্য: @BanglaHelper.ToBanglaCurrency(bill.OtherBill))
+                                                        </div>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (bill.IsPaid)
+                                                    {
+                                                        <span class="badge-paid"><i class="bi bi-check-circle-fill"></i> পরিশোধিত</span>
+                                                    }
+                                                    else if (bill.IsPartial)
+                                                    {
+                                                        <span class="badge-partial"><i class="bi bi-pie-chart-fill"></i> আংশিক পরিশোধ</span>
+                                                        <div class="small text-danger fw-bold" style="font-size: 0.75rem;">বাকি: @BanglaHelper.ToBanglaCurrency(bill.EffectiveDueAmount)</div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge-unpaid"><i class="bi bi-clock-history"></i> বকেয়া</span>
+                                                    }
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a asp-controller="Bills" asp-action="DownloadPdf" asp-route-id="@bill.Id" class="btn btn-light text-danger" title="PDF">
+                                                            <i class="bi bi-file-earmark-pdf"></i>
+                                                        </a>
+                                                        <a asp-controller="Bills" asp-action="Details" asp-route-id="@bill.Id" class="btn btn-light text-primary" title="বিস্তারিত">
+                                                            <i class="bi bi-eye"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Cards -->
+                        <div class="d-md-none p-3">
+                            @foreach (var bill in Model.MatchedBills)
+                            {
+                                <div class="mobile-data-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fw-bold text-primary fs-6">রুম @BanglaHelper.ToBanglaDigits(bill.Room?.RoomNumber ?? bill.RoomId.ToString())</span>
+                                        <div>
+                                            @if (bill.IsPaid)
+                                            {
+                                                <span class="badge-paid"><i class="bi bi-check-circle-fill"></i> পরিশোধিত</span>
+                                            }
+                                            else if (bill.IsPartial)
+                                            {
+                                                <span class="badge-partial"><i class="bi bi-pie-chart-fill"></i> আংশিক</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge-unpaid"><i class="bi bi-clock-history"></i> বকেয়া</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom small">
+                                        <span class="fw-semibold">@bill.TenantName</span>
+                                        <span class="badge bg-light text-dark border">@bill.BillingMonth</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <span class="text-muted small">মোট বিল:</span>
+                                            @if (bill.OtherBill > 0)
+                                            {
+                                                <div class="small text-secondary fw-semibold" style="font-size: 0.75rem;">(অন্যান্য: @BanglaHelper.ToBanglaCurrency(bill.OtherBill))</div>
+                                            }
+                                        </div>
+                                        <span class="fs-5 fw-bold text-primary">@BanglaHelper.ToBanglaCurrency(bill.TotalBill)</span>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <a asp-controller="Bills" asp-action="DownloadPdf" asp-route-id="@bill.Id" class="btn btn-sm btn-outline-danger flex-fill py-2" target="_blank">
+                                            <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                                        </a>
+                                        <a asp-controller="Bills" asp-action="Details" asp-route-id="@bill.Id" class="btn btn-sm btn-outline-primary flex-fill py-2">
+                                            <i class="bi bi-eye me-1"></i> বিস্তারিত
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+
+            @if (!Model.MatchedRooms.Any() && !Model.MatchedResidents.Any() && !Model.MatchedBills.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-search fs-1 d-block mb-3"></i>
+                    <h5 class="fw-bold text-secondary">কোনো মিল পাওয়া যায়নি</h5>
+                    <p class="small">অন্য কোনো নাম, রুম নম্বর বা ফোন নম্বর দিয়ে পুনরায় চেষ্টা করুন।</p>
+                </div>
+            }
+        }
+    </div>
+</div>

@@ -1,0 +1,250 @@
+@model Shanto_VilaManagement_System.Models.Setting
+@{
+    ViewData["Title"] = "সিস্টেম সেটিংস";
+    var rooms = ViewBag.Rooms as List<Shanto_VilaManagement_System.Models.Room>;
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+        <div class="custom-card">
+            <div class="card-header-custom">
+                <h1 class="card-title-custom">
+                    <i class="bi bi-gear-fill text-primary"></i>
+                    <span>বাড়ির ও সিস্টেমের সাধারণ সেটিংস</span>
+                </h1>
+            </div>
+
+            <div class="card-body-custom">
+                <!-- Historical Protection Notice (Requirement #18) -->
+                <div class="alert alert-primary border-0 rounded-3 mb-4">
+                    <h6 class="fw-bold mb-1">
+                        <i class="bi bi-shield-check me-1"></i>ঐতিহাসিক তথ্য সুরক্ষা (Historical Rule):
+                    </h6>
+                    <p class="small mb-0">
+                        এখানে ইউনিট মূল্য পরিবর্তন করলে শুধুমাত্র আগামীতে প্রস্তুতকৃত নতুন বিলসমূহে নতুন রেট কার্যকর হবে। পূর্ববর্তী মাসের সংরক্ষিত কোনো বিলে ইউনিট মূল্য পরিবর্তিত হবে না।
+                    </p>
+                </div>
+
+                <form asp-action="Edit" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="HouseName" class="form-label fw-semibold">বাড়ির নাম *</label>
+                        <input asp-for="HouseName" class="form-control form-control-lg fw-bold" placeholder="শান্ত ভিলা" />
+                        <span asp-validation-for="HouseName" class="text-danger small"></span>
+                        <div class="form-text small">এই নামটি ড্যাশবোর্ড ও সকল বাংলা PDF বিলে প্রদর্শিত হবে।</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="HouseAddress" class="form-label fw-semibold">বাড়ির ঠিকানা</label>
+                        <textarea asp-for="HouseAddress" class="form-control" rows="2" placeholder="বাড়ি নং, রোড নং, এলাকা, থানা, জেলা"></textarea>
+                        <span asp-validation-for="HouseAddress" class="text-danger small"></span>
+                        <div class="form-text small">বিলে ও সিস্টেমের হেডারে প্রদর্শিত হবে।</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="CurrentUnitPrice" class="form-label fw-semibold">বর্তমান বিদ্যুৎ ইউনিট মূল্য (টাকা) *</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light fw-bold">৳</span>
+                            <input asp-for="CurrentUnitPrice" type="number" step="0.01" class="form-control fw-bold" placeholder="যেমন: ১২" />
+                        </div>
+                        <span asp-validation-for="CurrentUnitPrice" class="text-danger small"></span>
+                        <div class="form-text small">
+                            বর্তমানে বিদ্যুৎ প্রতি ইউনিটের দাম (যেমন: ১২ টাকা)।
+                        </div>
+                    </div>
+
+                    <!-- Other Bills Section with Option 1 & Option 2 -->
+                    <div class="mb-4 p-3 bg-light rounded-3 border">
+                        <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
+                            <i class="bi bi-receipt-cutoff text-primary fs-5"></i>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0">অন্যান্য বিল নির্ধারণ (Other Bill Controls)</h6>
+                                <span class="text-secondary small">সকল রুমের জন্য একসাথে অথবা আলাদাভাবে অন্যান্য বিল সেট করুন</span>
+                            </div>
+                        </div>
+
+                        <!-- Option 1: Set for all rooms at once -->
+                        <div class="p-3 bg-white rounded-3 border mb-3">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-primary px-2 py-1">অপশন ১</span>
+                                <strong class="text-dark small">সকল রুমের জন্য একসাথে অন্যান্য বিল নির্ধারণ</strong>
+                            </div>
+                            <p class="text-secondary small mb-3">
+                                সব রুমের জন্য একই অন্যান্য বিলের পরিমাণ নির্ধারণ করতে নিচে টাকার পরিমাণ লিখুন।
+                            </p>
+                            <div class="row align-items-end g-2">
+                                <div class="col-sm-7">
+                                    <label asp-for="DefaultOtherBill" class="form-label fw-semibold small">সাধারণ / ডিফল্ট অন্যান্য বিল (টাকা):</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light fw-bold">৳</span>
+                                        <input asp-for="DefaultOtherBill" id="bulkOtherBillInput" type="number" step="0.01" class="form-control fw-bold" placeholder="যেমন: ১০০" />
+                                    </div>
+                                    <span asp-validation-for="DefaultOtherBill" class="text-danger small"></span>
+                                </div>
+                                <div class="col-sm-5">
+                                    <button type="button" class="btn btn-outline-primary btn-sm w-100 py-2 fw-semibold" onclick="applyBulkToAllRooms()">
+                                        <i class="bi bi-check2-all me-1"></i> সকল রুমে এই রেট বসান
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-text small mt-2">
+                                <i class="bi bi-info-circle me-1 text-primary"></i>ভবিষ্যতে নতুন রুম বাড়লেও এই ডিফল্ট রেট স্বয়ংক্রিয়ভাবে প্রযোজ্য হবে।
+                            </div>
+                        </div>
+
+                        <!-- Option 2: Individual room custom amounts -->
+                        <div class="p-3 bg-white rounded-3 border">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-secondary px-2 py-1">অপশন ২</span>
+                                    <strong class="text-dark small">প্রতিটি রুমের জন্য আলাদাভাবে অন্যান্য বিল নির্ধারণ</strong>
+                                </div>
+                                <span class="badge bg-light text-dark border small">মোট রুম: @BanglaHelper.ToBanglaDigits(rooms?.Count ?? 0) টি</span>
+                            </div>
+                            <p class="text-secondary small mb-3">
+                                নির্দিষ্ট কোনো রুমের অন্যান্য বিল আলাদা করতে চাইলে নিচে সেই রুমের ইনপুট বক্সে টাকার পরিমাণ লিখুন। ফাঁকা রাখলে স্বয়ংক্রিয়ভাবে উপরের অপশন ১-এর ডিফল্ট রেট প্রযোজ্য হবে।
+                            </p>
+
+                            <div class="table-responsive" style="max-height: 380px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                <table class="table table-sm table-hover align-middle mb-0">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th>রুম ও ভাড়াটিয়া</th>
+                                            <th style="width: 160px; min-width: 140px;">অন্যান্য বিল (৳)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (rooms != null && rooms.Any())
+                                        {
+                                            foreach (var r in rooms)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <strong class="text-primary small d-block">
+                                                            <i class="bi bi-door-open-fill me-1"></i>রুম @BanglaHelper.ToBanglaDigits(r.RoomNumber)
+                                                        </strong>
+                                                        <span class="small text-muted d-block text-truncate" style="font-size: 0.78rem; max-width: 140px;">
+                                                            @(r.PrimaryTenant?.Name ?? "খালি")
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                            <span class="input-group-text bg-light">৳</span>
+                                                            <input type="number" step="0.01" 
+                                                                   name="roomOtherBills[@r.Id]" 
+                                                                   id="room_other_@r.Id" 
+                                                                   class="form-control form-control-sm fw-bold room-other-bill-input" 
+                                                                   value="@(r.OtherBill.HasValue ? r.OtherBill.Value.ToString("0.##") : "")" 
+                                                                   placeholder="ডিফল্ট (@Model.DefaultOtherBill)" />
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="2" class="text-center text-muted py-3 small">কোনো রুম পাওয়া যায়নি</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 mb-4 border d-flex justify-content-between align-items-center">
+                        <span class="text-secondary small">সর্বশেষ সেটিংস আপডেট:</span>
+                        <strong class="text-dark small">@BanglaHelper.FormatBanglaDateFull(Model.UpdatedAt)</strong>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary-custom flex-grow-1 justify-content-center">
+                            <i class="bi bi-save"></i> সেটিংস আপডেট করুন
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Database Backup Section -->
+        <div class="custom-card mt-4">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom fs-5">
+                    <i class="bi bi-database-down text-success"></i>
+                    <span>ডাটাবেজ ব্যাকআপ (Database Backup)</span>
+                </h2>
+            </div>
+            <div class="card-body-custom">
+                <p class="text-secondary small mb-3">
+                    আপনার সিস্টেমের সকল রুম, ভাড়াটিয়া, মিটার রিডিং ও মাসিক বিলের সম্পূর্ণ ব্যাকআপ একটি <code>.sql</code> ফাইল হিসেবে ডাউনলোড করে নিজের পিসিতে সংরক্ষণ করতে পারবেন। এই ফাইলটি যেকোনো সময় লোকাল XAMPP (phpMyAdmin)-এ ইমপোর্ট করা যাবে।
+                </p>
+                <div class="d-grid">
+                    <a asp-action="DownloadBackup" class="btn btn-outline-success btn-lg fw-bold d-flex align-items-center justify-content-center gap-2">
+                        <i class="bi bi-file-earmark-arrow-down-fill fs-5"></i>
+                        <span>ডাটাবেজ ব্যাকআপ ডাউনলোড করুন (.sql)</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cloudinary Permanent Storage Status -->
+        <div class="custom-card mt-4">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom fs-5">
+                    <i class="bi bi-cloud-arrow-up-fill text-info"></i>
+                    <span>ক্লাউড ইমেজ ও এনআইডি স্টোরেজ (Cloudinary)</span>
+                </h2>
+            </div>
+            <div class="card-body-custom">
+                @if (ViewBag.IsCloudinaryConfigured == true)
+                {
+                    <div class="alert alert-success d-flex align-items-center gap-2 mb-0">
+                        <i class="bi bi-check-circle-fill fs-4 text-success"></i>
+                        <div>
+                            <strong class="d-block">Cloudinary ক্লাউড স্টোরেজ সক্রিয় আছে (Active)</strong>
+                            <span class="small">ভাড়াটিয়ার ছবি ও এনআইডি সরাসরি ক্লাউডে আজীবনের জন্য নিরাপদে সেভ হচ্ছে। কোনো ভাড়াটিয়াকে ডিলিট করলে Cloudinary থেকেও ছবিটি স্বয়ংক্রিয়ভাবে মুছে যাবে।</span>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-info-circle-fill fs-4 text-warning"></i>
+                        <div>
+                            <strong class="d-block">বর্তমানে লোকাল স্টোরেজ মোডে চলছে</strong>
+                            <span class="small">ছবি ও এনআইডি আজীবনের জন্য ক্লাউডে পার্মানেন্ট সেভ রাখতে নিচের নিয়মে ফ্রি Cloudinary অ্যাকাউন্ট কী যুক্ত করুন।</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-light rounded-3 border small">
+                        <div class="fw-bold mb-1 text-dark"><i class="bi bi-key-fill text-primary me-1"></i>কীভাবে ফ্রি Cloudinary চালু করবেন:</div>
+                        <ol class="mb-0 ps-3 text-secondary">
+                            <li><a href="https://cloudinary.com" target="_blank" class="fw-semibold text-primary">cloudinary.com</a>-এ গিয়ে ফ্রি সাইন-আপ করুন (২৫ GB ফ্রি স্টোরেজ)।</li>
+                            <li>Dashboard থেকে <strong>Cloud Name</strong>, <strong>API Key</strong> এবং <strong>API Secret</strong> কপি করুন।</li>
+                            <li>প্রজেক্টের <code>appsettings.json</code>-এ অথবা Render সার্ভারের Environment Variables-এ বসিয়ে দিন।</li>
+                        </ol>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function applyBulkToAllRooms() {
+            const bulkVal = document.getElementById('bulkOtherBillInput').value.trim();
+            if (bulkVal === '') {
+                alert('অনুগ্রহ করে প্রথমে সাধারণ অন্যান্য বিলের ঘরে টাকার পরিমাণ লিখুন।');
+                return;
+            }
+            const inputs = document.querySelectorAll('.room-other-bill-input');
+            inputs.forEach(input => {
+                input.value = bulkVal;
+            });
+        }
+    </script>
+}

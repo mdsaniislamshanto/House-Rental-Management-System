@@ -1,0 +1,186 @@
+@model Shanto_VilaManagement_System.Models.Resident
+@{
+    ViewData["Title"] = $"{Model.Name} প্রোফাইল";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Profile Card -->
+        <div class="custom-card mb-4">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">
+                    <i class="bi bi-person-badge-fill text-primary"></i>
+                    <span>বাসিন্দার পূর্ণাঙ্গ প্রোফাইল</span>
+                </h2>
+                <div class="d-flex gap-2">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-custom">
+                        <i class="bi bi-pencil"></i> এডিট
+                    </a>
+                    <a asp-controller="Rooms" asp-action="Details" asp-route-id="@Model.RoomId" class="btn btn-sm btn-outline-custom">
+                        <i class="bi bi-door-open"></i> রুম @BanglaHelper.ToBanglaDigits(Model.Room?.RoomNumber ?? "")
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-body-custom">
+                <div class="d-flex flex-column flex-sm-row align-items-center align-items-sm-start gap-4 mb-4 pb-4 border-bottom">
+                    @if (!string.IsNullOrWhiteSpace(Model.Photo))
+                    {
+                        <img src="@Model.Photo" alt="@Model.Name" class="resident-avatar-lg" />
+                    }
+                    else
+                    {
+                        <div class="resident-avatar-lg d-flex align-items-center justify-content-center bg-light text-secondary">
+                            <i class="bi bi-person-fill" style="font-size: 3rem;"></i>
+                        </div>
+                    }
+
+                    <div class="text-center text-sm-start flex-grow-1">
+                        <div class="d-flex flex-wrap align-items-center gap-2 justify-content-center justify-content-sm-start mb-1">
+                            <h3 class="fw-bold text-dark mb-0">@Model.Name</h3>
+                            @if (Model.IsPrimaryTenant)
+                            {
+                                <span class="badge bg-primary">প্রধান ভাড়াটিয়া</span>
+                            }
+                        </div>
+                        <p class="text-secondary mb-2">
+                            <span class="badge bg-light text-dark border me-2">@Model.Relationship</span>
+                            <a asp-controller="Rooms" asp-action="Details" asp-route-id="@Model.RoomId" class="text-primary fw-semibold text-decoration-none">
+                                <i class="bi bi-door-closed me-1"></i>রুম নম্বর: @BanglaHelper.ToBanglaDigits(Model.Room?.RoomNumber ?? Model.RoomId.ToString())
+                            </a>
+                        </p>
+                        <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-sm-start text-muted small">
+                            <span><i class="bi bi-telephone-fill text-primary me-1"></i>@Model.Phone</span>
+                            @if (!string.IsNullOrWhiteSpace(Model.Profession))
+                            {
+                                <span><i class="bi bi-briefcase-fill text-info me-1"></i>@Model.Profession</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Model.DateOfBirthOrAge))
+                            {
+                                <span><i class="bi bi-calendar-event me-1"></i>@Model.DateOfBirthOrAge</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detail Info Table -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="text-secondary small fw-semibold">পেশা ও কর্মক্ষেত্র</div>
+                            <div class="fw-bold text-dark mt-1">@(Model.Profession ?? "—")</div>
+                            <div class="small text-muted">@(Model.Organization ?? "প্রতিষ্ঠান উল্লেখ নেই")</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="text-secondary small fw-semibold">যোগদানের তারিখ</div>
+                            <div class="fw-bold text-dark mt-1">@BanglaHelper.FormatBanglaDateFull(Model.CreatedAt)</div>
+                            <div class="small text-muted">শান্ত ভিলায় অন্তর্ভুক্তির সময়</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="text-secondary small fw-semibold">অগ্রিম জমার পরিমাণ</div>
+                            <div class="fw-bold text-success fs-5 mt-1">@BanglaHelper.ToBanglaCurrency(Model.AdvanceAmount)</div>
+                            <div class="small text-muted">রুম নেওয়ার সময় প্রদত্ত অগ্রিম টাকা</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="text-secondary small fw-semibold">বর্তমান ঠিকানা</div>
+                            <div class="text-dark mt-1">@(Model.CurrentAddress ?? "—")</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="text-secondary small fw-semibold">স্থায়ী ঠিকানা</div>
+                            <div class="text-dark mt-1">@(Model.PermanentAddress ?? "—")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NID Documents Section (Requirement #12) -->
+                <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                    <i class="bi bi-card-heading text-primary me-2"></i>জাতীয় পরিচয়পত্র (NID Documents)
+                </h5>
+
+                <div class="row g-3 mb-4">
+                    <!-- NID Front -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border">
+                            <div class="card-header bg-light py-2 small fw-semibold text-dark">
+                                <i class="bi bi-card-image text-primary me-1"></i> এনআইডি (সামনের অংশ)
+                            </div>
+                            <div class="card-body p-2 text-center">
+                                @if (!string.IsNullOrWhiteSpace(Model.NIDFront))
+                                {
+                                    <a href="@Model.NIDFront" target="_blank">
+                                        <img src="@Model.NIDFront" alt="NID Front" class="nid-preview" />
+                                    </a>
+                                    <div class="mt-2">
+                                        <a href="@Model.NIDFront" target="_blank" class="btn btn-sm btn-outline-custom">
+                                            <i class="bi bi-arrows-fullscreen"></i> পূর্ণাকারে দেখুন
+                                        </a>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="py-4 text-muted small">
+                                        <i class="bi bi-file-earmark-x fs-2 d-block mb-1"></i>
+                                        কোনো সামনের অংশের ফাইল আপলোড করা হয়নি
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NID Back -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border">
+                            <div class="card-header bg-light py-2 small fw-semibold text-dark">
+                                <i class="bi bi-card-image text-primary me-1"></i> এনআইডি (পেছনের অংশ)
+                            </div>
+                            <div class="card-body p-2 text-center">
+                                @if (!string.IsNullOrWhiteSpace(Model.NIDBack))
+                                {
+                                    <a href="@Model.NIDBack" target="_blank">
+                                        <img src="@Model.NIDBack" alt="NID Back" class="nid-preview" />
+                                    </a>
+                                    <div class="mt-2">
+                                        <a href="@Model.NIDBack" target="_blank" class="btn btn-sm btn-outline-custom">
+                                            <i class="bi bi-arrows-fullscreen"></i> পূর্ণাকারে দেখুন
+                                        </a>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="py-4 text-muted small">
+                                        <i class="bi bi-file-earmark-x fs-2 d-block mb-1"></i>
+                                        কোনো পেছনের অংশের ফাইল আপলোড করা হয়নি
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই বাসিন্দার তথ্য মুছে ফেলতে চান?');">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-trash"></i> এই বাসিন্দার তথ্য মুছুন
+                        </button>
+                    </form>
+
+                    <a asp-controller="Residents" asp-action="Index" class="btn btn-outline-custom btn-sm">
+                        <i class="bi bi-list"></i> সকল বাসিন্দা
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

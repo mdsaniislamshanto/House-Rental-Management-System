@@ -1,0 +1,215 @@
+@model IEnumerable<Shanto_VilaManagement_System.Models.Room>
+@{
+    ViewData["Title"] = "রুম ম্যানেজমেন্ট";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-door-open text-primary me-2"></i>রুম ম্যানেজমেন্ট
+        </h1>
+        <p class="text-secondary mb-0 small">বাড়ির সকল রুমের তথ্য, মাসিক ভাড়া ও বর্তমান অবস্থা পরিচালনা করুন</p>
+    </div>
+
+    <div>
+        <a asp-action="Create" class="btn btn-primary-custom">
+            <i class="bi bi-plus-circle"></i> নতুন রুম যোগ করুন
+        </a>
+    </div>
+</div>
+
+<div class="custom-card">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">
+            <i class="bi bi-grid-fill text-primary"></i>
+            <span>সকল রুমের তালিকা (@BanglaHelper.ToBanglaDigits(Model.Count()) টি)</span>
+        </h2>
+    </div>
+
+    <div class="card-body-custom p-0">
+        <!-- Desktop Table View -->
+        <div class="d-none d-md-block">
+            <div class="table-responsive border-0">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>রুম নম্বর</th>
+                            <th>মাসিক ভাড়া</th>
+                            <th>মিটার নম্বর</th>
+                            <th>প্রধান ভাড়াটিয়া</th>
+                            <th>মোট বাসিন্দা</th>
+                            <th>অবস্থা</th>
+                            <th class="text-end">একশন</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    কোনো রুম পাওয়া যায়নি। উপরের "নতুন রুম যোগ করুন" বাটনে ক্লিক করে রুম তৈরি করুন।
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var room in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-action="Details" asp-route-id="@room.Id" class="fw-bold text-primary text-decoration-none fs-6">
+                                            রুম @BanglaHelper.ToBanglaDigits(room.RoomNumber)
+                                        </a>
+                                    </td>
+                                    <td class="fw-bold text-dark">
+                                        @BanglaHelper.ToBanglaCurrency(room.RoomRent)
+                                        @if (room.OtherBill.HasValue)
+                                        {
+                                            <div class="small text-muted fw-normal">অন্যান্য: @BanglaHelper.ToBanglaCurrency(room.OtherBill.Value)</div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(room.MeterNumber))
+                                        {
+                                            <span class="badge bg-light text-dark border">
+                                                <i class="bi bi-speedometer2 text-info me-1"></i>@room.MeterNumber
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (room.PrimaryTenant != null)
+                                        {
+                                            <a asp-controller="Residents" asp-action="Details" asp-route-id="@room.PrimaryTenant.Id" class="text-dark text-decoration-none fw-semibold">
+                                                <i class="bi bi-person-fill text-primary me-1"></i>@room.PrimaryTenant.Name
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">কোনো ভাড়াটিয়া নেই</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (room.Residents.Any())
+                                        {
+                                            <span class="badge bg-light text-dark border">
+                                                @BanglaHelper.ToBanglaDigits(room.Residents.Count) জন
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">০ জন</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="@room.StatusBadgeClass">
+                                            @room.StatusBangla
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-action="Details" asp-route-id="@room.Id" class="btn btn-light" title="বিস্তারিত দেখুন">
+                                                <i class="bi bi-eye text-primary"></i>
+                                            </a>
+                                            <a asp-controller="Electricity" asp-action="SingleEntry" asp-route-roomId="@room.Id" class="btn btn-light" title="মিটার রিডিং এন্ট্রি">
+                                                <i class="bi bi-lightning-charge text-warning"></i>
+                                            </a>
+                                            <a asp-controller="Residents" asp-action="Create" asp-route-roomId="@room.Id" class="btn btn-light" title="ভাড়াটিয়া যুক্ত করুন">
+                                                <i class="bi bi-person-plus text-success"></i>
+                                            </a>
+                                            <a asp-action="Edit" asp-route-id="@room.Id" class="btn btn-light" title="এডিট করুন">
+                                                <i class="bi bi-pencil-square text-secondary"></i>
+                                            </a>
+                                            <a asp-action="Delete" asp-route-id="@room.Id" class="btn btn-light" title="ডিলিট করুন">
+                                                <i class="bi bi-trash text-danger"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="d-md-none p-3">
+            @if (!Model.Any())
+            {
+                <div class="text-center py-4 text-muted bg-light rounded-3 border">
+                    কোনো রুম পাওয়া যায়নি। উপরের "নতুন রুম যোগ করুন" বাটনে ক্লিক করে রুম তৈরি করুন।
+                </div>
+            }
+            else
+            {
+                @foreach (var room in Model)
+                {
+                    <div class="mobile-data-card">
+                        <!-- Header: Room Number & Status Badge -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <a asp-action="Details" asp-route-id="@room.Id" class="fw-bold text-primary text-decoration-none fs-5">
+                                <i class="bi bi-door-open-fill me-1"></i>রুম @BanglaHelper.ToBanglaDigits(room.RoomNumber)
+                            </a>
+                            <span class="@room.StatusBadgeClass">
+                                @room.StatusBangla
+                            </span>
+                        </div>
+
+                        <!-- Tenant & Residents Count -->
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <div>
+                                <span class="text-muted small">প্রধান ভাড়াটিয়া:</span>
+                                <span class="fw-semibold text-dark ms-1">
+                                    @(room.PrimaryTenant?.Name ?? "খালি / নেই")
+                                </span>
+                            </div>
+                            <span class="badge bg-light text-secondary border">
+                                <i class="bi bi-people-fill me-1"></i>@BanglaHelper.ToBanglaDigits(room.Residents.Count) জন
+                            </span>
+                        </div>
+
+                        <!-- Rent & Meter Number -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <span class="text-muted small">মাসিক ভাড়া:</span>
+                                <span class="fw-bold text-dark fs-6 ms-1">@BanglaHelper.ToBanglaCurrency(room.RoomRent)</span>
+                                @if (room.OtherBill.HasValue)
+                                {
+                                    <div class="small text-secondary" style="font-size: 0.78rem;">
+                                        অন্যান্য: @BanglaHelper.ToBanglaCurrency(room.OtherBill.Value)
+                                    </div>
+                                }
+                            </div>
+                            <div>
+                                <span class="text-muted small">মিটার:</span>
+                                <span class="badge bg-light text-dark border ms-1">
+                                    @(string.IsNullOrWhiteSpace(room.MeterNumber) ? "—" : room.MeterNumber)
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Quick Action Buttons -->
+                        <div class="d-flex gap-2 pt-1">
+                            <a asp-action="Details" asp-route-id="@room.Id" class="btn btn-sm btn-outline-primary flex-fill py-2 fw-semibold">
+                                <i class="bi bi-eye me-1"></i> বিস্তারিত
+                            </a>
+                            <a asp-controller="Electricity" asp-action="SingleEntry" asp-route-roomId="@room.Id" class="btn btn-sm btn-outline-warning text-dark flex-fill py-2 fw-semibold">
+                                <i class="bi bi-lightning-charge me-1"></i> মিটার রিডিং
+                            </a>
+                            <a asp-controller="Residents" asp-action="Create" asp-route-roomId="@room.Id" class="btn btn-sm btn-outline-success py-2 px-3" title="ভাড়াটিয়া যুক্ত করুন">
+                                <i class="bi bi-person-plus"></i>
+                            </a>
+                            <a asp-action="Edit" asp-route-id="@room.Id" class="btn btn-sm btn-outline-secondary py-2 px-3" title="এডিট">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>

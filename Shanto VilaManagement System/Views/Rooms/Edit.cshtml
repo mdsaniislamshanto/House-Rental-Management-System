@@ -1,0 +1,89 @@
+@model Shanto_VilaManagement_System.Models.Room
+@{
+    ViewData["Title"] = $"রুম {Model.RoomNumber} এডিট";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="custom-card">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">
+                    <i class="bi bi-pencil-square text-primary"></i>
+                    <span>রুম @BanglaHelper.ToBanglaDigits(Model.RoomNumber) তথ্য পরিবর্তন</span>
+                </h2>
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-custom">
+                    <i class="bi bi-arrow-left"></i> ফিরে যান
+                </a>
+            </div>
+
+            <div class="card-body-custom">
+                <!-- Historical rule alert -->
+                <div class="alert alert-info border-0 rounded-3 mb-4 small" role="alert">
+                    <i class="bi bi-info-circle-fill me-1"></i>
+                    <strong>গুরুত্বপূর্ণ নিয়ম:</strong> রুম ভাড়া পরিবর্তন করলে তা শুধুমাত্র আগামী নতুন বিলের ক্ষেত্রে প্রযোজ্য হবে। ইতোপূর্বে প্রস্তুতকৃত কোনো ঐতিহাসিক বিল পরিবর্তন হবে না।
+                </div>
+
+                <form asp-action="Edit" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="CreatedAt" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="RoomNumber" class="form-label fw-semibold"></label>
+                        <input asp-for="RoomNumber" class="form-control" />
+                        <span asp-validation-for="RoomNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="RoomRent" class="form-label fw-semibold"></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">৳</span>
+                            <input asp-for="RoomRent" type="number" step="0.01" class="form-control" />
+                        </div>
+                        <span asp-validation-for="RoomRent" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="OtherBill" class="form-label fw-semibold"></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">৳</span>
+                            <input asp-for="OtherBill" type="number" step="0.01" class="form-control" placeholder="ফাঁকা রাখলে সেটিংসের সাধারণ রেট প্রযোজ্য" />
+                        </div>
+                        <span asp-validation-for="OtherBill" class="text-danger small"></span>
+                        <div class="form-text small">এই রুমের জন্য নির্দিষ্ট অন্যান্য বিল থাকলে লিখুন, অন্যথায় সেটিংসের সাধারণ রেট কার্যকর হবে।</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="MeterNumber" class="form-label fw-semibold"></label>
+                        <input asp-for="MeterNumber" class="form-control" />
+                        <span asp-validation-for="MeterNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="InitialMeterReading" class="form-label fw-semibold"></label>
+                        <input asp-for="InitialMeterReading" type="number" step="0.1" class="form-control" />
+                        <span asp-validation-for="InitialMeterReading" class="text-danger small"></span>
+                        <div class="form-text small">প্রথম বিল তৈরির ক্ষেত্রে এটি পূর্বের রিডিং হিসেবে কাজ করে।</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Status" class="form-label fw-semibold"></label>
+                        <select asp-for="Status" class="form-select">
+                            <option value="Occupied">ভাড়া দেওয়া (Occupied)</option>
+                            <option value="Vacant">খালি (Vacant)</option>
+                            <option value="Inactive">নিষ্ক্রিয় (Inactive)</option>
+                        </select>
+                        <span asp-validation-for="Status" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary-custom flex-grow-1 justify-content-center">
+                            <i class="bi bi-save"></i> পরিবর্তন সংরক্ষণ করুন
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-custom">বাতিল</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

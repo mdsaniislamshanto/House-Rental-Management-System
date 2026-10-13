@@ -1,0 +1,1222 @@
+@model Shanto_VilaManagement_System.ViewModels.ResidentsIndexViewModel
+@{
+    ViewData["Title"] = "বাসিন্দা ও ভাড়াটিয়া তালিকা";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-people-fill text-primary me-2"></i>বাসিন্দা ও ভাড়াটিয়া তালিকা
+        </h1>
+        <p class="text-secondary mb-0 small">
+            রুম ভিত্তিক প্রধান ভাড়াটিয়া ও সকল সদস্যদের পরিচালনা এবং প্রস্থান ব্যবস্থাপনা
+        </p>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <!-- Room Filter -->
+        <form method="get" class="d-flex align-items-center gap-2">
+            <input type="hidden" name="tab" value="@Model.ActiveTab" />
+            <select name="roomId" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 170px;">
+                <option value="">— সকল রুম —</option>
+                @foreach (var r in Model.AllRooms)
+                {
+                    if (Model.SelectedRoomId == r.Id)
+                    {
+                        <option value="@r.Id" selected>রুম @BanglaHelper.ToBanglaDigits(r.RoomNumber)</option>
+                    }
+                    else
+                    {
+                        <option value="@r.Id">রুম @BanglaHelper.ToBanglaDigits(r.RoomNumber)</option>
+                    }
+                }
+            </select>
+            @if (Model.SelectedRoomId.HasValue)
+            {
+                <a asp-action="Index" asp-route-tab="@Model.ActiveTab" class="btn btn-sm btn-outline-custom" title="ফিল্টার মুছুন">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            }
+        </form>
+
+        <a asp-action="Create" asp-route-roomId="@Model.SelectedRoomId" class="btn btn-primary-custom">
+            <i class="bi bi-person-plus-fill"></i> নতুন ভাড়াটিয়া যুক্ত করুন
+        </a>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<ul class="nav nav-pills mb-4 gap-2">
+    <li class="nav-item">
+        <a class="nav-link @(Model.ActiveTab == "active" ? "active bg-primary text-white fw-bold shadow-sm" : "bg-light text-dark border")" 
+           asp-action="Index" asp-route-tab="active" asp-route-roomId="@Model.SelectedRoomId">
+            <i class="bi bi-house-door-fill me-1"></i> বর্তমান বাসিন্দা (রুম ভিত্তিক)
+            <span class="badge @(Model.ActiveTab == "active" ? "bg-white text-primary" : "bg-primary text-white") ms-2">
+                @BanglaHelper.ToBanglaDigits(Model.TotalActiveResidentsCount) জন
+            </span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(Model.ActiveTab == "archived" ? "active bg-primary text-white fw-bold shadow-sm" : "bg-light text-dark border")" 
+           asp-action="Index" asp-route-tab="archived" asp-route-roomId="@Model.SelectedRoomId">
+            <i class="bi bi-archive-fill me-1"></i> প্রাক্তন / রুম ছেড়ে যাওয়া বাসিন্দা (আর্কাইভ)
+            <span class="badge @(Model.ActiveTab == "archived" ? "bg-white text-primary" : "bg-secondary text-white") ms-2">
+                @BanglaHelper.ToBanglaDigits(Model.TotalArchivedResidentsCount) জন
+            </span>
+        </a>
+    </li>
+</ul>
+
+@if (Model.ActiveTab == "active")
+{
+    <!-- TAB 1: ACTIVE RESIDENTS (ROOM-WISE PRIMARY TENANT & ACCORDION) -->
+    <div class="custom-card">
+        <div class="card-header-custom d-flex justify-content-between align-items-center">
+            <h2 class="card-title-custom">
+                <i class="bi bi-building text-primary"></i>
+                <span>রুম ভিত্তিক বাসিন্দা তালিকা (@BanglaHelper.ToBanglaDigits(Model.RoomGroups.Count) টি রুমে ভাড়াটিয়া আছেন)</span>
+            </h2>
+            <span class="text-muted small">
+                <i class="bi bi-info-circle me-1"></i>"সকল সদস্য দেখুন" বাটনে ক্লিক করে সংশ্লিষ্ট রুমের সকল সদস্য দেখা, এডিট বা প্রস্থান (সফ্ট ডিলিট) করা যাবে
+            </span>
+        </div>
+
+        <div class="card-body-custom p-0">
+            <!-- Desktop Table View -->
+            <div class="table-responsive d-none d-md-block">
+                <table class="table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 110px;">রুম নম্বর</th>
+                            <th style="width: 70px;">ছবি</th>
+                            <th>প্রধান ভাড়াটিয়ার নাম</th>
+                            <th>মোট সদস্য সংখ্যা</th>
+                            <th>মোবাইল নম্বর</th>
+                            <th>পেশা ও প্রতিষ্ঠান</th>
+                            <th>মাসিক রুম ভাড়া</th>
+                            <th class="text-end" style="min-width: 250px;">একশন</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.RoomGroups.Any())
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="bi bi-people fs-1 d-block mb-2 text-secondary"></i>
+                                    বর্তমানে কোনো সক্রিয় ভাড়াটিয়া বা বাসিন্দা পাওয়া যায়নি।
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var group in Model.RoomGroups)
+                            {
+                                var primary = group.PrimaryTenant;
+                                var collapseId = $"collapseRoom_{group.Room.Id}";
+                                
+                                <tr class="room-main-row" id="roomRow_@group.Room.Id">
+                                    <td>
+                                        <a asp-controller="Rooms" asp-action="Details" asp-route-id="@group.Room.Id" 
+                                           class="fw-bold text-primary text-decoration-none fs-6">
+                                            রুম @BanglaHelper.ToBanglaDigits(group.Room.RoomNumber)
+                                        </a>
+                                        @if (!string.IsNullOrWhiteSpace(group.Room.MeterNumber))
+                                        {
+                                            <div class="text-muted small" style="font-size: 0.75rem;">
+                                                মিটার: @group.Room.MeterNumber
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(primary?.Photo))
+                                        {
+                                            <img src="@primary.Photo" alt="@primary.Name" class="resident-avatar" style="width: 44px; height: 44px;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="resident-avatar d-flex align-items-center justify-content-center bg-light text-secondary" 
+                                                 style="width: 44px; height: 44px; border-radius: 50%;">
+                                                <i class="bi bi-person fs-4"></i>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (primary != null)
+                                        {
+                                            <a asp-action="Details" asp-route-id="@primary.Id" class="fw-bold text-dark text-decoration-none fs-6">
+                                                @primary.Name
+                                            </a>
+                                            <div>
+                                                <span class="badge bg-primary" style="font-size: 0.65rem;">
+                                                    <i class="bi bi-star-fill me-1"></i>প্রধান ভাড়াটিয়া
+                                                </span>
+                                                @if (primary.AdvanceAmount > 0)
+                                                {
+                                                    <span class="badge bg-success ms-1" style="font-size: 0.65rem;" title="অগ্রিম টাকা">
+                                                        অগ্রিম: @BanglaHelper.ToBanglaCurrency(primary.AdvanceAmount)
+                                                    </span>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">অনির্ধারিত</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info text-dark border fs-6 px-3 py-1">
+                                            <i class="bi bi-people-fill me-1"></i>@BanglaHelper.ToBanglaDigits(group.TotalActiveCount) জন
+                                        </span>
+                                        <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+                                            প্রাপ্তবয়স্ক: @BanglaHelper.ToBanglaDigits(group.AdultCount), শিশু: @BanglaHelper.ToBanglaDigits(group.ChildCount)
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(primary?.Phone))
+                                        {
+                                            <a href="tel:@primary.Phone" class="text-decoration-none text-dark fw-semibold">
+                                                <i class="bi bi-telephone text-primary me-1"></i>@primary.Phone
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">@(primary?.Profession ?? "—")</div>
+                                        <div class="small text-muted">@(primary?.Organization ?? "")</div>
+                                    </td>
+                                    <td class="fw-bold text-dark">
+                                        @BanglaHelper.ToBanglaCurrency(group.Room.RoomRent)
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <!-- View All Members Toggle Button -->
+                                            <button type="button" class="btn btn-outline-primary fw-semibold" 
+                                                    data-bs-toggle="collapse" data-bs-target="#@collapseId" 
+                                                    aria-expanded="false" aria-controls="@collapseId"
+                                                    title="এই রুমের সকল সদস্য দেখুন">
+                                                <i class="bi bi-chevron-down me-1"></i> সকল সদস্য (@BanglaHelper.ToBanglaDigits(group.TotalActiveCount))
+                                            </button>
+
+                                            <!-- Vacate Room / Soft Delete All Button -->
+                                            <button type="button" class="btn btn-outline-danger" 
+                                                    onclick="confirmVacateRoom(@group.Room.Id, '@group.Room.RoomNumber', @group.TotalActiveCount)"
+                                                    title="এই রুমের সকল বাসিন্দা চলে গেছেন (রুম খালি করুন)">
+                                                <i class="bi bi-door-closed"></i> রুম খালি করুন
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- ACCORDION COLLAPSIBLE DRAWER FOR ALL MEMBERS OF THIS ROOM -->
+                                <tr class="collapse-row p-0">
+                                    <td colspan="8" class="p-0 border-0">
+                                        <div class="collapse" id="@collapseId">
+                                            <div class="p-3 bg-light border-top border-bottom">
+                                                <div class="d-flex justify-content-between align-items-center mb-2 px-2">
+                                                    <h6 class="fw-bold text-dark mb-0">
+                                                        <i class="bi bi-people text-primary me-2"></i>
+                                                        রুম @BanglaHelper.ToBanglaDigits(group.Room.RoomNumber)-এর সকল সদস্যের তালিকা (@BanglaHelper.ToBanglaDigits(group.TotalActiveCount) জন)
+                                                    </h6>
+                                                    <a asp-action="Create" asp-route-roomId="@group.Room.Id" asp-route-isAddMember="true" class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-person-plus-fill me-1"></i>এই রুমে আরো সদস্য যোগ করুন
+                                                    </a>
+                                                </div>
+
+                                                <div class="table-responsive bg-white rounded-3 border">
+                                                    <table class="table table-hover align-middle mb-0 small">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th style="width: 50px;">ছবি</th>
+                                                                <th>নাম</th>
+                                                                <th>সম্পর্ক</th>
+                                                                <th>বয়স / জন্মতারিখ</th>
+                                                                <th>মোবাইল নম্বর</th>
+                                                                <th>পেশা ও প্রতিষ্ঠান</th>
+                                                                <th>NID ডকুমেন্ট</th>
+                                                                <th class="text-end" style="width: 200px;">একশন</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var res in group.ActiveResidents)
+                                                            {
+                                                                <tr>
+                                                                    <td>
+                                                                        @if (!string.IsNullOrWhiteSpace(res.Photo))
+                                                                        {
+                                                                            <img src="@res.Photo" alt="@res.Name" class="resident-avatar" style="width: 36px; height: 36px;" />
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <div class="resident-avatar d-flex align-items-center justify-content-center bg-light text-secondary" 
+                                                                                 style="width: 36px; height: 36px; border-radius: 50%;">
+                                                                                <i class="bi bi-person fs-5"></i>
+                                                                            </div>
+                                                                        }
+                                                                    </td>
+                                                                    <td>
+                                                                        <a asp-action="Details" asp-route-id="@res.Id" class="fw-bold text-dark text-decoration-none">
+                                                                            @res.Name
+                                                                        </a>
+                                                                        @if (res.IsPrimaryTenant)
+                                                                        {
+                                                                            <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">প্রধান ভাড়াটিয়া</span>
+                                                                        }
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="badge bg-light text-dark border">@res.Relationship</span>
+                                                                    </td>
+                                                                    <td>
+                                                                        @(res.DateOfBirthOrAge ?? "—")
+                                                                    </td>
+                                                                    <td>
+                                                                        @if (!string.IsNullOrWhiteSpace(res.Phone) && res.Phone != "—")
+                                                                        {
+                                                                            <a href="tel:@res.Phone" class="text-decoration-none text-dark">
+                                                                                @res.Phone
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span class="text-muted">—</span>
+                                                                        }
+                                                                    </td>
+                                                                    <td>
+                                                                        <div>@(res.Profession ?? "—")</div>
+                                                                        <div class="text-muted" style="font-size: 0.75rem;">@(res.Organization ?? "")</div>
+                                                                    </td>
+                                                                    <td>
+                                                                        <div class="d-flex gap-1">
+                                                                            @if (!string.IsNullOrWhiteSpace(res.NIDFront))
+                                                                            {
+                                                                                <a href="@res.NIDFront" target="_blank" class="badge bg-light text-primary border text-decoration-none" title="NID Front">
+                                                                                    <i class="bi bi-card-image"></i> ফ্রন্ট
+                                                                                </a>
+                                                                            }
+                                                                            @if (!string.IsNullOrWhiteSpace(res.NIDBack))
+                                                                            {
+                                                                                <a href="@res.NIDBack" target="_blank" class="badge bg-light text-primary border text-decoration-none" title="NID Back">
+                                                                                    <i class="bi bi-card-image"></i> ব্যাক
+                                                                                </a>
+                                                                            }
+                                                                            @if (string.IsNullOrWhiteSpace(res.NIDFront) && string.IsNullOrWhiteSpace(res.NIDBack))
+                                                                            {
+                                                                                <span class="text-muted">—</span>
+                                                                            }
+                                                                        </div>
+                                                                    </td>
+                                                                    <td class="text-end">
+                                                                        <div class="btn-group btn-group-sm">
+                                                                            <a asp-action="Details" asp-route-id="@res.Id" class="btn btn-light" title="বিস্তারিত দেখুন">
+                                                                                <i class="bi bi-eye text-primary"></i>
+                                                                            </a>
+                                                                            <a asp-action="Edit" asp-route-id="@res.Id" class="btn btn-light" title="এডিট করুন">
+                                                                                <i class="bi bi-pencil text-secondary"></i>
+                                                                            </a>
+                                                                            <!-- Single Member Soft Delete -->
+                                                                            <button type="button" class="btn btn-light text-danger" 
+                                                                                    onclick="confirmSoftDelete(@res.Id, '@res.Name', '@group.Room.RoomNumber')" 
+                                                                                    title="এই সদস্য আর এ রুমে থাকেন না (প্রস্থান / সফ্ট ডিলিট)">
+                                                                                <i class="bi bi-box-arrow-right"></i> প্রস্থান
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile Card View -->
+            <div class="d-md-none p-3">
+                @if (!Model.RoomGroups.Any())
+                {
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-people fs-1 d-block mb-2 text-secondary"></i>
+                        বর্তমানে কোনো সক্রিয় ভাড়াটিয়া বা বাসিন্দা পাওয়া যায়নি।
+                    </div>
+                }
+                else
+                {
+                    @foreach (var group in Model.RoomGroups)
+                    {
+                        var primary = group.PrimaryTenant;
+                        var mobCollapseId = $"mobCollapseRoom_{group.Room.Id}";
+                        <div class="mobile-data-card" id="mobRoomCard_@group.Room.Id">
+                            <div class="d-flex justify-content-between align-items-start mb-2 pb-2 border-bottom">
+                                <div>
+                                    <a asp-controller="Rooms" asp-action="Details" asp-route-id="@group.Room.Id" 
+                                       class="fw-bold text-primary text-decoration-none fs-6">
+                                        রুম @BanglaHelper.ToBanglaDigits(group.Room.RoomNumber)
+                                    </a>
+                                    @if (!string.IsNullOrWhiteSpace(group.Room.MeterNumber))
+                                    {
+                                        <div class="text-muted small" style="font-size: 0.75rem;">
+                                            মিটার: @group.Room.MeterNumber
+                                        </div>
+                                    }
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                        ভাড়া: @BanglaHelper.ToBanglaCurrency(group.Room.RoomRent)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Primary Resident Header info -->
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                @if (!string.IsNullOrWhiteSpace(primary?.Photo))
+                                {
+                                    <img src="@primary.Photo" alt="@primary.Name" class="resident-avatar" style="width: 46px; height: 46px; object-fit: cover; border-radius: 50%;" />
+                                }
+                                else
+                                {
+                                    <div class="resident-avatar d-flex align-items-center justify-content-center bg-light text-secondary" 
+                                         style="width: 46px; height: 46px; border-radius: 50%;">
+                                        <i class="bi bi-person fs-3"></i>
+                                    </div>
+                                }
+                                <div class="flex-grow-1 min-w-0">
+                                    @if (primary != null)
+                                    {
+                                        <div class="d-flex align-items-center flex-wrap gap-1">
+                                            <a asp-action="Details" asp-route-id="@primary.Id" class="fw-bold text-dark text-decoration-none">
+                                                @primary.Name
+                                            </a>
+                                            <span class="badge bg-primary" style="font-size: 0.65rem;">প্রধান ভাড়াটিয়া</span>
+                                            @if (primary.AdvanceAmount > 0)
+                                            {
+                                                <span class="badge bg-success" style="font-size: 0.65rem;">
+                                                    অগ্রিম: @BanglaHelper.ToBanglaCurrency(primary.AdvanceAmount)
+                                                </span>
+                                            }
+                                        </div>
+                                        <div class="small text-muted text-truncate">
+                                            @(primary.Profession ?? "—") @(!string.IsNullOrWhiteSpace(primary.Organization) ? $"({primary.Organization})" : "")
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">অনির্ধারিত</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Metrics Grid -->
+                            <div class="card-metrics-grid mb-3">
+                                <div class="metric-box">
+                                    <span class="metric-label">মোট বাসিন্দা</span>
+                                    <span class="metric-val text-primary">
+                                        <i class="bi bi-people-fill me-1"></i>@BanglaHelper.ToBanglaDigits(group.TotalActiveCount) জন
+                                    </span>
+                                    <span class="text-muted" style="font-size: 0.7rem;">বড়: @BanglaHelper.ToBanglaDigits(group.AdultCount), শিশু: @BanglaHelper.ToBanglaDigits(group.ChildCount)</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">মোবাইল নম্বর</span>
+                                    <span class="metric-val">
+                                        @if (!string.IsNullOrWhiteSpace(primary?.Phone))
+                                        {
+                                            <a href="tel:@primary.Phone" class="text-decoration-none text-primary fw-bold" style="font-size: 0.85rem;">
+                                                <i class="bi bi-telephone-fill me-1"></i>@primary.Phone
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex gap-2 mb-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary flex-fill fw-semibold" 
+                                        data-bs-toggle="collapse" data-bs-target="#@mobCollapseId" 
+                                        aria-expanded="false" aria-controls="@mobCollapseId">
+                                    <i class="bi bi-chevron-down me-1"></i> সদস্য তালিকা (@BanglaHelper.ToBanglaDigits(group.TotalActiveCount))
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        onclick="confirmVacateRoom(@group.Room.Id, '@group.Room.RoomNumber', @group.TotalActiveCount)">
+                                    <i class="bi bi-door-closed"></i> রুম খালি
+                                </button>
+                            </div>
+
+                            <!-- Collapsible drawer for room members on mobile -->
+                            <div class="collapse mt-2" id="@mobCollapseId">
+                                <div class="p-2 bg-light rounded-3 border">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                                        <span class="fw-bold small text-dark">
+                                            সদস্যদের বিবরণ (@BanglaHelper.ToBanglaDigits(group.TotalActiveCount) জন)
+                                        </span>
+                                        <a asp-action="Create" asp-route-roomId="@group.Room.Id" asp-route-isAddMember="true" class="btn btn-xs btn-outline-primary" style="font-size: 0.72rem; padding: 2px 6px;">
+                                            <i class="bi bi-person-plus-fill me-1"></i>+ সদস্য যোগ
+                                        </a>
+                                    </div>
+                                    @foreach (var res in group.ActiveResidents)
+                                    {
+                                        <div class="bg-white rounded-2 p-2 mb-2 border shadow-sm">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                @if (!string.IsNullOrWhiteSpace(res.Photo))
+                                                {
+                                                    <img src="@res.Photo" alt="@res.Name" style="width: 32px; height: 32px; object-fit: cover; border-radius: 50%;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="d-flex align-items-center justify-content-center bg-light text-secondary" 
+                                                         style="width: 32px; height: 32px; border-radius: 50%;">
+                                                        <i class="bi bi-person fs-5"></i>
+                                                    </div>
+                                                }
+                                                <div class="flex-grow-1 min-w-0">
+                                                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                        <a asp-action="Details" asp-route-id="@res.Id" class="fw-bold text-dark text-decoration-none small">
+                                                            @res.Name
+                                                        </a>
+                                                        <span class="badge bg-light text-dark border" style="font-size: 0.65rem;">@res.Relationship</span>
+                                                        @if (res.IsPrimaryTenant)
+                                                        {
+                                                            <span class="badge bg-primary" style="font-size: 0.6rem;">প্রধান</span>
+                                                        }
+                                                    </div>
+                                                    <div class="text-muted" style="font-size: 0.72rem;">
+                                                        @(res.DateOfBirthOrAge ?? "") @(!string.IsNullOrWhiteSpace(res.Profession) ? $"• {res.Profession}" : "")
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center pt-1 border-top" style="font-size: 0.75rem;">
+                                                <div>
+                                                    @if (!string.IsNullOrWhiteSpace(res.Phone) && res.Phone != "—")
+                                                    {
+                                                        <a href="tel:@res.Phone" class="text-decoration-none text-primary">
+                                                            <i class="bi bi-telephone"></i> @res.Phone
+                                                        </a>
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(res.NIDFront) || !string.IsNullOrWhiteSpace(res.NIDBack))
+                                                    {
+                                                        <span class="badge bg-light text-secondary border ms-1" style="font-size: 0.65rem;">NID সংযুক্ত</span>
+                                                    }
+                                                </div>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a asp-action="Details" asp-route-id="@res.Id" class="btn btn-xs btn-light text-primary p-1" title="বিস্তারিত">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                    <a asp-action="Edit" asp-route-id="@res.Id" class="btn btn-xs btn-light text-secondary p-1" title="এডিট">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <button type="button" class="btn btn-xs btn-light text-danger p-1" 
+                                                            onclick="confirmSoftDelete(@res.Id, '@res.Name', '@group.Room.RoomNumber')" 
+                                                            title="প্রস্থান">
+                                                        <i class="bi bi-box-arrow-right"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- TAB 2: ARCHIVED / FORMER RESIDENTS (SOFT DELETED) -->
+    <div class="alert alert-info border-info d-flex align-items-center gap-3 mb-4">
+        <i class="bi bi-info-circle-fill fs-3 text-info"></i>
+        <div>
+            <strong>প্রাক্তন ও প্রস্থানকারী বাসিন্দাদের সংরক্ষিত আর্কাইভ তালিকা:</strong>
+            <p class="mb-0 small">
+                এই তালিকায় শান্ত ভিলা ছেড়ে চলে যাওয়া ভাড়াটিয়া ও সদস্যদের পূর্বের সংরক্ষিত তথ্য প্রদর্শিত হচ্ছে। তাদের তথ্য ডাটাবেজে সংরক্ষিত রয়েছে। আপনি চাইলে তাদের তথ্য দেখতে পারবেন, আবার রুমে পুনর্বহাল করতে পারবেন অথবা সম্পূর্ণ স্থায়ীভাবে মুছে ফেলতে পারবেন।
+            </p>
+        </div>
+    </div>
+
+    <div class="custom-card">
+        <div class="card-header-custom d-flex justify-content-between align-items-center">
+            <h2 class="card-title-custom">
+                <i class="bi bi-archive text-primary"></i>
+                <span>প্রাক্তন বাসিন্দাদের তালিকা (@BanglaHelper.ToBanglaDigits(Model.ArchivedRoomGroups.Count) টি রুমে প্রাক্তন ভাড়াটিয়া ছিলেন)</span>
+            </h2>
+            <span class="text-muted small">
+                <i class="bi bi-info-circle me-1"></i>"সকল সদস্য দেখুন" বাটনে ক্লিক করে ওই রুমের সকল প্রাক্তন সদস্যের তথ্য দেখা ও স্থায়ী ডিলিট করা যাবে
+            </span>
+        </div>
+
+        <div class="card-body-custom p-0">
+            <!-- Desktop Table View -->
+            <div class="table-responsive d-none d-md-block">
+                <table class="table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 110px;">রুম নম্বর</th>
+                            <th style="width: 70px;">ছবি</th>
+                            <th>প্রধান প্রাক্তন ভাড়াটিয়া</th>
+                            <th>মোট প্রাক্তন সদস্য</th>
+                            <th>মোবাইল নম্বর</th>
+                            <th>প্রস্থান / ছাড়ার তারিখ</th>
+                            <th>স্থায়ী ঠিকানা</th>
+                            <th class="text-end" style="min-width: 270px;">একশন</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.ArchivedRoomGroups.Any())
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="bi bi-archive fs-1 d-block mb-2 text-secondary"></i>
+                                    কোনো প্রাক্তন বা প্রস্থানকারী বাসিন্দার রেকর্ড নেই।
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var group in Model.ArchivedRoomGroups)
+                            {
+                                var primary = group.PrimaryTenant;
+                                var collapseId = $"collapseArchivedRoom_{group.Room.Id}";
+
+                                <tr>
+                                    <td>
+                                        <a asp-controller="Rooms" asp-action="Details" asp-route-id="@group.Room.Id" 
+                                           class="fw-bold text-primary text-decoration-none fs-6">
+                                            রুম @BanglaHelper.ToBanglaDigits(group.Room.RoomNumber)
+                                        </a>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(primary?.Photo))
+                                        {
+                                            <img src="@primary.Photo" alt="@primary.Name" class="resident-avatar opacity-75" style="width: 44px; height: 44px;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="resident-avatar d-flex align-items-center justify-content-center bg-light text-secondary" 
+                                                 style="width: 44px; height: 44px; border-radius: 50%;">
+                                                <i class="bi bi-person fs-4"></i>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (primary != null)
+                                        {
+                                            <a asp-action="Details" asp-route-id="@primary.Id" class="fw-bold text-dark text-decoration-none fs-6">
+                                                @primary.Name
+                                            </a>
+                                            <div>
+                                                <span class="badge bg-secondary" style="font-size: 0.65rem;">
+                                                    <i class="bi bi-clock-history me-1"></i>প্রাক্তন প্রধান ভাড়াটিয়া
+                                                </span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">অনির্ধারিত</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary text-white fs-6 px-3 py-1">
+                                            <i class="bi bi-people-fill me-1"></i>@BanglaHelper.ToBanglaDigits(group.TotalCount) জন
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(primary?.Phone) && primary.Phone != "—")
+                                        {
+                                            <a href="tel:@primary.Phone" class="text-decoration-none text-dark">
+                                                <i class="bi bi-telephone text-primary me-1"></i>@primary.Phone
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (group.LatestLeftAt.HasValue)
+                                        {
+                                            <span class="badge bg-warning text-dark border">
+                                                <i class="bi bi-calendar-x me-1"></i>@group.LatestLeftAt.Value.ToString("dd/MM/yyyy")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">—</span>
+                                        }
+                                    </td>
+                                    <td class="small text-muted" style="max-width: 160px;">
+                                        @(primary?.PermanentAddress ?? "—")
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <!-- View All Members Toggle Button -->
+                                            <button type="button" class="btn btn-outline-primary fw-semibold" 
+                                                    data-bs-toggle="collapse" data-bs-target="#@collapseId" 
+                                                    aria-expanded="false" aria-controls="@collapseId"
+                                                    title="এই রুমের সকল প্রাক্তন সদস্য দেখুন">
+                                                <i class="bi bi-chevron-down me-1"></i> সকল সদস্য (@BanglaHelper.ToBanglaDigits(group.TotalCount))
+                                            </button>
+
+                                            <!-- Restore All to Room -->
+                                            <button type="button" class="btn btn-outline-success" 
+                                                    onclick="confirmRestoreRoom(@group.Room.Id, '@group.Room.RoomNumber', @group.TotalCount)"
+                                                    title="এই রুমের সকল সদস্যকে পুনরায় সক্রিয় করুন">
+                                                <i class="bi bi-arrow-counterclockwise"></i> পুনর্বহাল
+                                            </button>
+
+                                            <!-- Permanent Delete All for Room -->
+                                            <button type="button" class="btn btn-outline-danger" 
+                                                    onclick="confirmPermanentDeleteRoom(@group.Room.Id, '@group.Room.RoomNumber', @group.TotalCount)"
+                                                    title="এই রুমের সকল প্রাক্তন সদস্যের তথ্য চিরতরে মুছে ফেলুন">
+                                                <i class="bi bi-trash3-fill"></i> রেকর্ড মুছুন
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- ACCORDION COLLAPSIBLE DRAWER FOR ARCHIVED MEMBERS OF THIS ROOM -->
+                                <tr class="collapse-row p-0">
+                                    <td colspan="8" class="p-0 border-0">
+                                        <div class="collapse" id="@collapseId">
+                                            <div class="p-3 bg-light border-top border-bottom">
+                                                <div class="d-flex justify-content-between align-items-center mb-2 px-2">
+                                                    <h6 class="fw-bold text-dark mb-0">
+                                                        <i class="bi bi-archive text-primary me-2"></i>
+                                                        রুম @BanglaHelper.ToBanglaDigits(group.Room.RoomNumber)-এর সকল প্রাক্তন সদস্য (@BanglaHelper.ToBanglaDigits(group.TotalCount) জন)
+                                                    </h6>
+                                                    <span class="text-muted small">
+                                                        নিচে প্রতিটি সদস্যের তথ্য পৃথকভাবে দেখতে, পুনর্বহাল করতে বা স্থায়ীভাবে ডিলিট করতে পারবেন
+                                                    </span>
+                                                </div>
+
+                                                <div class="table-responsive bg-white rounded-3 border">
+                                                    <table class="table table-hover align-middle mb-0 small">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th style="width: 50px;">ছবি</th>
+                                                                <th>নাম</th>
+                                                                <th>সম্পর্ক</th>
+                                                                <th>বয়স / জন্মতারিখ</th>
+                                                                <th>মোবাইল নম্বর</th>
+                                                                <th>যোগদানের তারিখ</th>
+                                                                <th>ছাড়ার তারিখ</th>
+                                                                <th>স্থায়ী ঠিকানা</th>
+                                                                <th class="text-end" style="width: 180px;">একশন</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var res in group.ArchivedResidents)
+                                                            {
+                                                                <tr>
+                                                                    <td>
+                                                                        @if (!string.IsNullOrWhiteSpace(res.Photo))
+                                                                        {
+                                                                            <img src="@res.Photo" alt="@res.Name" class="resident-avatar opacity-75" style="width: 36px; height: 36px;" />
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <div class="resident-avatar d-flex align-items-center justify-content-center bg-light text-secondary" 
+                                                                                 style="width: 36px; height: 36px; border-radius: 50%;">
+                                                                                <i class="bi bi-person fs-5"></i>
+                                                                            </div>
+                                                                        }
+                                                                    </td>
+                                                                    <td>
+                                                                        <a asp-action="Details" asp-route-id="@res.Id" class="fw-bold text-dark text-decoration-none">
+                                                                            @res.Name
+                                                                        </a>
+                                                                        @if (res.IsPrimaryTenant)
+                                                                        {
+                                                                            <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">প্রাক্তন প্রধান ভাড়াটিয়া</span>
+                                                                        }
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="badge bg-light text-dark border">@res.Relationship</span>
+                                                                    </td>
+                                                                    <td>
+                                                                        @(res.DateOfBirthOrAge ?? "—")
+                                                                    </td>
+                                                                    <td>
+                                                                        @if (!string.IsNullOrWhiteSpace(res.Phone) && res.Phone != "—")
+                                                                        {
+                                                                            <a href="tel:@res.Phone" class="text-decoration-none text-dark">
+                                                                                @res.Phone
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span class="text-muted">—</span>
+                                                                        }
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="text-muted">@res.CreatedAt.ToString("dd/MM/yyyy")</span>
+                                                                    </td>
+                                                                    <td>
+                                                                        @if (res.LeftAt.HasValue)
+                                                                        {
+                                                                            <span class="badge bg-warning text-dark border">
+                                                                                @res.LeftAt.Value.ToString("dd/MM/yyyy")
+                                                                            </span>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span class="text-muted">—</span>
+                                                                        }
+                                                                    </td>
+                                                                    <td>
+                                                                        @(res.PermanentAddress ?? "—")
+                                                                    </td>
+                                                                    <td class="text-end">
+                                                                        <div class="btn-group btn-group-sm">
+                                                                            <a asp-action="Details" asp-route-id="@res.Id" class="btn btn-light" title="বিস্তারিত দেখুন">
+                                                                                <i class="bi bi-eye text-primary"></i>
+                                                                            </a>
+                                                                            <button type="button" class="btn btn-light text-success" 
+                                                                                    onclick="confirmRestore(@res.Id, '@res.Name', '@group.Room.RoomNumber')" 
+                                                                                    title="পুনরায় সক্রিয় করুন">
+                                                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                                                            </button>
+                                                                            <button type="button" class="btn btn-light text-danger" 
+                                                                                    onclick="confirmPermanentDelete(@res.Id, '@res.Name')" 
+                                                                                    title="স্থায়ীভাবে মুছে ফেলুন">
+                                                                                <i class="bi bi-trash3-fill"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile Card View -->
+            <div class="d-md-none p-3">
+                @if (!Model.ArchivedRoomGroups.Any())
+                {
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-archive fs-1 d-block mb-2 text-secondary"></i>
+                        কোনো প্রাক্তন বা প্রস্থানকারী বাসিন্দার রেকর্ড নেই।
+                    </div>
+                }
+                else
+                {
+                    @foreach (var group in Model.ArchivedRoomGroups)
+                    {
+                        var primary = group.PrimaryTenant;
+                        var mobArchiveCollapseId = $"mobCollapseArchivedRoom_{group.Room.Id}";
+                        <div class="mobile-data-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2 pb-2 border-bottom">
+                                <a asp-controller="Rooms" asp-action="Details" asp-route-id="@group.Room.Id" 
+                                   class="fw-bold text-primary text-decoration-none fs-6">
+                                    রুম @BanglaHelper.ToBanglaDigits(group.Room.RoomNumber)
+                                </a>
+                                @if (group.LatestLeftAt.HasValue)
+                                {
+                                    <span class="badge bg-warning text-dark border">
+                                        <i class="bi bi-calendar-x me-1"></i>ছাড়ার তারিখ: @group.LatestLeftAt.Value.ToString("dd/MM/yyyy")
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                @if (!string.IsNullOrWhiteSpace(primary?.Photo))
+                                {
+                                    <img src="@primary.Photo" alt="@primary.Name" class="resident-avatar opacity-75" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;" />
+                                }
+                                else
+                                {
+                                    <div class="resident-avatar d-flex align-items-center justify-content-center bg-light text-secondary" 
+                                         style="width: 44px; height: 44px; border-radius: 50%;">
+                                        <i class="bi bi-person fs-4"></i>
+                                    </div>
+                                }
+                                <div class="flex-grow-1 min-w-0">
+                                    @if (primary != null)
+                                    {
+                                        <a asp-action="Details" asp-route-id="@primary.Id" class="fw-bold text-dark text-decoration-none">
+                                            @primary.Name
+                                        </a>
+                                        <div>
+                                            <span class="badge bg-secondary" style="font-size: 0.65rem;">
+                                                <i class="bi bi-clock-history me-1"></i>প্রাক্তন প্রধান ভাড়াটিয়া
+                                            </span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">অনির্ধারিত</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="card-metrics-grid mb-3">
+                                <div class="metric-box">
+                                    <span class="metric-label">মোট প্রাক্তন সদস্য</span>
+                                    <span class="metric-val text-secondary">
+                                        <i class="bi bi-people-fill me-1"></i>@BanglaHelper.ToBanglaDigits(group.TotalCount) জন
+                                    </span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">মোবাইল নম্বর</span>
+                                    <span class="metric-val">
+                                        @if (!string.IsNullOrWhiteSpace(primary?.Phone) && primary.Phone != "—")
+                                        {
+                                            <a href="tel:@primary.Phone" class="text-decoration-none text-dark">
+                                                @primary.Phone
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(primary?.PermanentAddress))
+                            {
+                                <div class="small text-muted mb-3 p-2 bg-light rounded">
+                                    <i class="bi bi-geo-alt me-1"></i>ঠিকানা: @primary.PermanentAddress
+                                </div>
+                            }
+
+                            <div class="d-flex gap-2 flex-wrap mb-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary flex-fill fw-semibold" 
+                                        data-bs-toggle="collapse" data-bs-target="#@mobArchiveCollapseId" 
+                                        aria-expanded="false" aria-controls="@mobArchiveCollapseId">
+                                    <i class="bi bi-chevron-down me-1"></i> সদস্য (@BanglaHelper.ToBanglaDigits(group.TotalCount))
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success flex-fill" 
+                                        onclick="confirmRestoreRoom(@group.Room.Id, '@group.Room.RoomNumber', @group.TotalCount)">
+                                    <i class="bi bi-arrow-counterclockwise"></i> পুনর্বহাল
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        onclick="confirmPermanentDeleteRoom(@group.Room.Id, '@group.Room.RoomNumber', @group.TotalCount)">
+                                    <i class="bi bi-trash3-fill"></i> রেকর্ড মুছুন
+                                </button>
+                            </div>
+
+                            <!-- Collapsible drawer for archived members -->
+                            <div class="collapse mt-2" id="@mobArchiveCollapseId">
+                                <div class="p-2 bg-light rounded-3 border">
+                                    <span class="fw-bold small text-dark d-block mb-2 px-1">
+                                        রুমের প্রাক্তন সদস্যবৃন্দ (@BanglaHelper.ToBanglaDigits(group.TotalCount) জন)
+                                    </span>
+                                    @foreach (var res in group.ArchivedResidents)
+                                    {
+                                        <div class="bg-white rounded-2 p-2 mb-2 border shadow-sm">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                @if (!string.IsNullOrWhiteSpace(res.Photo))
+                                                {
+                                                    <img src="@res.Photo" alt="@res.Name" class="opacity-75" style="width: 32px; height: 32px; object-fit: cover; border-radius: 50%;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="d-flex align-items-center justify-content-center bg-light text-secondary" 
+                                                         style="width: 32px; height: 32px; border-radius: 50%;">
+                                                        <i class="bi bi-person fs-5"></i>
+                                                    </div>
+                                                }
+                                                <div class="flex-grow-1 min-w-0">
+                                                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                        <a asp-action="Details" asp-route-id="@res.Id" class="fw-bold text-dark text-decoration-none small">
+                                                            @res.Name
+                                                        </a>
+                                                        <span class="badge bg-light text-dark border" style="font-size: 0.65rem;">@res.Relationship</span>
+                                                    </div>
+                                                    <div class="text-muted" style="font-size: 0.72rem;">
+                                                        যোগদান: @res.CreatedAt.ToString("dd/MM/yy") @(res.LeftAt.HasValue ? $"• ছাড়ার তারিখ: {res.LeftAt.Value.ToString("dd/MM/yy")}" : "")
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center pt-1 border-top" style="font-size: 0.75rem;">
+                                                <div>
+                                                    @if (!string.IsNullOrWhiteSpace(res.Phone) && res.Phone != "—")
+                                                    {
+                                                        <a href="tel:@res.Phone" class="text-decoration-none text-dark">
+                                                            <i class="bi bi-telephone"></i> @res.Phone
+                                                        </a>
+                                                    }
+                                                </div>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a asp-action="Details" asp-route-id="@res.Id" class="btn btn-xs btn-light text-primary p-1" title="বিস্তারিত">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                    <button type="button" class="btn btn-xs btn-light text-success p-1" 
+                                                            onclick="confirmRestore(@res.Id, '@res.Name', '@group.Room.RoomNumber')" 
+                                                            title="পুনর্বহাল">
+                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-xs btn-light text-danger p-1" 
+                                                            onclick="confirmPermanentDelete(@res.Id, '@res.Name')" 
+                                                            title="মুছুন">
+                                                        <i class="bi bi-trash3-fill"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<!-- MODAL: CONFIRM SINGLE SOFT DELETE -->
+<div class="modal fade" id="softDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="SoftDelete" method="post">
+                <input type="hidden" name="id" id="softDeleteResidentId" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-dark">
+                        <i class="bi bi-box-arrow-right text-warning me-2"></i>বাসিন্দা প্রস্থান নিশ্চিতকরণ (সফ্ট ডিলিট)
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">
+                        আপনি কি নিশ্চিত যে <strong id="softDeleteResidentName" class="text-primary"></strong> আর রুম <span id="softDeleteRoomNumber" class="fw-bold"></span>-এ থাকেন না?
+                    </p>
+                    <div class="alert alert-warning small mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        তাকে <strong>সফ্ট ডিলিট</strong> হিসেবে চিহ্নিত করে "প্রাক্তন বাসিন্দা" তালিকায় রাখা হবে। পূর্বের বিল ও রেকর্ড বহাল থাকবে।
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">বাতিল</button>
+                    <button type="submit" class="btn btn-warning fw-bold">
+                        <i class="bi bi-check-circle me-1"></i>প্রস্থান নিশ্চিত করুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CONFIRM VACATE ROOM (SOFT DELETE ALL IN ROOM) -->
+<div class="modal fade" id="vacateRoomModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="VacateRoom" method="post">
+                <input type="hidden" name="roomId" id="vacateRoomId" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-danger">
+                        <i class="bi bi-door-closed text-danger me-2"></i>রুম প্রস্থান ও খালি করুন
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">
+                        আপনি কি নিশ্চিত যে <strong>রুম <span id="vacateRoomNumber" class="text-primary"></span></strong>-এর সকল বাসিন্দা (<span id="vacateResidentCount" class="fw-bold text-danger"></span> জন) বাসা ছেড়ে চলে গেছেন?
+                    </p>
+                    <div class="alert alert-danger small mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        এই রুমের সকল সক্রিয় বাসিন্দাকে একসাথে <strong>সফ্ট ডিলিট</strong> করে "প্রাক্তন বাসিন্দা" আর্কাইভে রাখা হবে এবং রুমটির স্ট্যাটাস স্বয়ংক্রিয়ভাবে <strong>"খালি (Vacant)"</strong> হয়ে যাবে।
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">বাতিল</button>
+                    <button type="submit" class="btn btn-danger fw-bold">
+                        <i class="bi bi-door-closed me-1"></i>হ্যাঁ, রুম খালি ও প্রস্থান সম্পন্ন করুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CONFIRM PERMANENT DELETE -->
+<div class="modal fade" id="permanentDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="PermanentDelete" method="post">
+                <input type="hidden" name="id" id="permanentDeleteResidentId" />
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-trash3-fill me-2"></i>স্থায়ীভাবে ডিলিট নিশ্চিতকরণ
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">
+                        আপনি কি নিশ্চিত যে <strong id="permanentDeleteResidentName" class="text-danger"></strong>-এর সকল তথ্য ও আপলোড করা ছবি/NID ডাটাবেজ থেকে <strong>স্থায়ীভাবে মুছে ফেলতে</strong> চান?
+                    </p>
+                    <div class="alert alert-danger small mb-0">
+                        <i class="bi bi-exclamation-octagon-fill me-1"></i>
+                        <strong>সতর্কতা:</strong> এটি ডাটাবেজ থেকে চিরতরে মুছে যাবে এবং পরবর্তীতে আর কোনোভাবেই ফিরিয়ে আনা যাবে না!
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">বাতিল</button>
+                    <button type="submit" class="btn btn-danger fw-bold">
+                        <i class="bi bi-trash3-fill me-1"></i>স্থায়ীভাবে মুছে ফেলুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CONFIRM RESTORE -->
+<div class="modal fade" id="restoreModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="Restore" method="post">
+                <input type="hidden" name="id" id="restoreResidentId" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-success">
+                        <i class="bi bi-arrow-counterclockwise text-success me-2"></i>বাসিন্দা সক্রিয়করণ
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">
+                        আপনি কি <strong id="restoreResidentName" class="text-primary"></strong>-কে পুনরায় রুম <span id="restoreRoomNumber" class="fw-bold"></span>-এর সক্রিয় বাসিন্দা হিসেবে যুক্ত করতে চান?
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">বাতিল</button>
+                    <button type="submit" class="btn btn-success fw-bold">
+                        <i class="bi bi-check-circle me-1"></i>সক্রিয় করুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CONFIRM PERMANENT DELETE ALL ARCHIVED FOR A ROOM -->
+<div class="modal fade" id="permanentDeleteRoomModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="PermanentDeleteRoom" method="post">
+                <input type="hidden" name="roomId" id="permanentDeleteRoomId" />
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-trash3-fill me-2"></i>রুমের সকল তথ্য চিরতরে মুছে ফেলা
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">
+                        আপনি কি নিশ্চিত যে <strong>রুম <span id="permanentDeleteRoomNo" class="text-danger"></span></strong>-এর সকল প্রাক্তন বাসিন্দা (<span id="permanentDeleteRoomCount" class="fw-bold text-danger"></span> জন)-এর সমস্ত তথ্য, আপলোড করা ছবি ও NID ডাটাবেজ থেকে <strong>স্থায়ীভাবে মুছে ফেলতে</strong> চান?
+                    </p>
+                    <div class="alert alert-danger small mb-0">
+                        <i class="bi bi-exclamation-octagon-fill me-1"></i>
+                        <strong>সতর্কতা:</strong> এটি ডাটাবেজ থেকে চিরতরে মুছে যাবে এবং পরবর্তীতে আর কোনোভাবেই ফিরিয়ে আনা যাবে না!
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">বাতিল</button>
+                    <button type="submit" class="btn btn-danger fw-bold">
+                        <i class="bi bi-trash3-fill me-1"></i>চিরতরে মুছে ফেলুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CONFIRM RESTORE ALL FOR A ROOM -->
+<div class="modal fade" id="restoreRoomModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="RestoreRoom" method="post">
+                <input type="hidden" name="roomId" id="restoreRoomId" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-success">
+                        <i class="bi bi-arrow-counterclockwise text-success me-2"></i>রুমের সকল বাসিন্দা পুনর্বহাল
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">
+                        আপনি কি <strong>রুম <span id="restoreRoomNo" class="text-primary"></span></strong>-এর মোট <span id="restoreRoomCount" class="fw-bold"></span> জন প্রাক্তন বাসিন্দাকে পুনরায় এই রুমে সক্রিয় বাসিন্দা হিসেবে পুনর্বহাল করতে চান?
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">বাতিল</button>
+                    <button type="submit" class="btn btn-success fw-bold">
+                        <i class="bi bi-check-circle me-1"></i>সকলকে সক্রিয় করুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmSoftDelete(id, name, roomNo) {
+            document.getElementById('softDeleteResidentId').value = id;
+            document.getElementById('softDeleteResidentName').textContent = name;
+            document.getElementById('softDeleteRoomNumber').textContent = roomNo;
+            const modal = new bootstrap.Modal(document.getElementById('softDeleteModal'));
+            modal.show();
+        }
+
+        function confirmVacateRoom(roomId, roomNo, count) {
+            document.getElementById('vacateRoomId').value = roomId;
+            document.getElementById('vacateRoomNumber').textContent = roomNo;
+            document.getElementById('vacateResidentCount').textContent = count;
+            const modal = new bootstrap.Modal(document.getElementById('vacateRoomModal'));
+            modal.show();
+        }
+
+        function confirmPermanentDelete(id, name) {
+            document.getElementById('permanentDeleteResidentId').value = id;
+            document.getElementById('permanentDeleteResidentName').textContent = name;
+            const modal = new bootstrap.Modal(document.getElementById('permanentDeleteModal'));
+            modal.show();
+        }
+
+        function confirmRestore(id, name, roomNo) {
+            document.getElementById('restoreResidentId').value = id;
+            document.getElementById('restoreResidentName').textContent = name;
+            document.getElementById('restoreRoomNumber').textContent = roomNo;
+            const modal = new bootstrap.Modal(document.getElementById('restoreModal'));
+            modal.show();
+        }
+
+        function confirmPermanentDeleteRoom(roomId, roomNo, count) {
+            document.getElementById('permanentDeleteRoomId').value = roomId;
+            document.getElementById('permanentDeleteRoomNo').textContent = roomNo;
+            document.getElementById('permanentDeleteRoomCount').textContent = count;
+            const modal = new bootstrap.Modal(document.getElementById('permanentDeleteRoomModal'));
+            modal.show();
+        }
+
+        function confirmRestoreRoom(roomId, roomNo, count) {
+            document.getElementById('restoreRoomId').value = roomId;
+            document.getElementById('restoreRoomNo').textContent = roomNo;
+            document.getElementById('restoreRoomCount').textContent = count;
+            const modal = new bootstrap.Modal(document.getElementById('restoreRoomModal'));
+            modal.show();
+        }
+    </script>
+}

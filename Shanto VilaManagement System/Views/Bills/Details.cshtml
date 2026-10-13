@@ -1,0 +1,270 @@
+@model Shanto_VilaManagement_System.Models.MonthlyBill
+@{
+    var setting = ViewBag.Setting as Shanto_VilaManagement_System.Models.Setting;
+    ViewData["Title"] = $"রুম {Model.Room?.RoomNumber} - {Model.BillingMonth} বিল বিবরণ";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+        <div class="custom-card">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">
+                    <i class="bi bi-receipt-cutoff text-primary"></i>
+                    <span>মাসিক বিলের পূর্ণাঙ্গ বিবরণ</span>
+                </h2>
+                <div class="d-flex gap-2">
+                    <a asp-action="DownloadPdf" asp-route-id="@Model.Id" class="btn btn-sm btn-danger" target="_blank">
+                        <i class="bi bi-file-earmark-pdf-fill"></i> বাংলা PDF
+                    </a>
+                    <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-custom" target="_blank">
+                        <i class="bi bi-printer"></i> প্রিন্ট
+                    </a>
+                    <a asp-action="Index" class="btn btn-sm btn-outline-custom">
+                        <i class="bi bi-arrow-left"></i> তালিকা
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-body-custom">
+                <!-- House Header -->
+                <div class="text-center pb-3 border-bottom mb-4">
+                    <h3 class="fw-bold text-primary mb-1">@(setting?.HouseName ?? "শান্ত ভিলা")</h3>
+                    <p class="text-secondary small mb-1">@(setting?.HouseAddress ?? "")</p>
+                    <span class="badge bg-light text-dark border px-3 py-1">মাসিক ভাড়ার রশিদ</span>
+                </div>
+
+                <!-- Meta Box -->
+                <div class="p-3 bg-light rounded-3 mb-4 border">
+                    <div class="row g-2 small">
+                        <div class="col-6">
+                            <span class="text-secondary">রুম নম্বর:</span>
+                            <strong class="text-dark d-block fs-6">
+                                রুম @BanglaHelper.ToBanglaDigits(Model.Room?.RoomNumber ?? Model.RoomId.ToString())
+                            </strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-secondary">বিলের মাস:</span>
+                            <strong class="text-dark d-block fs-6">@Model.BillingMonth</strong>
+                        </div>
+                        <div class="col-6 mt-2">
+                            <span class="text-secondary">ভাড়াটিয়ার নাম:</span>
+                            <strong class="text-dark d-block">@Model.TenantName</strong>
+                        </div>
+                        <div class="col-6 mt-2">
+                            <span class="text-secondary">পরিশোধের অবস্থা:</span>
+                            <div>
+                                @if (Model.IsPaid)
+                                {
+                                    <span class="badge-paid">
+                                        <i class="bi bi-check-circle-fill"></i> পরিশোধিত (তারিখ: @BanglaHelper.FormatBanglaDate(Model.PaidDate))
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge-unpaid">
+                                        <i class="bi bi-clock-history"></i> বকেয়া
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Electricity Breakdown (Requirement #19) -->
+                <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                    <i class="bi bi-lightning-charge text-primary me-2"></i>বিদ্যুৎ বিলের বিবরণ
+                </h5>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-secondary w-50">পূর্বের মিটার রিডিং :</td>
+                                <td class="text-end fw-bold">@BanglaHelper.ToBanglaNumber(Model.PreviousReading, true)</td>
+                            </tr>
+                            <tr>
+                                <td class="text-secondary">বর্তমান মিটার রিডিং :</td>
+                                <td class="text-end fw-bold">@BanglaHelper.ToBanglaNumber(Model.CurrentReading, true)</td>
+                            </tr>
+                            <tr class="table-light">
+                                <td class="text-secondary">ব্যবহৃত ইউনিট (বর্তমান - পূর্বের) :</td>
+                                <td class="text-end fw-bold text-primary">@BanglaHelper.ToBanglaNumber(Model.UsedUnit, true) ইউনিট</td>
+                            </tr>
+                            <tr>
+                                <td class="text-secondary">ইউনিট মূল্য (স্ন্যাপশট) :</td>
+                                <td class="text-end">@BanglaHelper.ToBanglaCurrency(Model.UnitPrice)</td>
+                            </tr>
+                            <tr class="table-info bg-opacity-25">
+                                <td class="fw-bold text-dark">বিদ্যুৎ বিল মোট :</td>
+                                <td class="text-end fw-bold text-info fs-6">@BanglaHelper.ToBanglaCurrency(Model.ElectricityBill)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Total Bill Breakdown (Requirement #20) -->
+                <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                    <i class="bi bi-cash-stack text-primary me-2"></i>সর্বমোট বিলের হিসাব
+                </h5>
+
+                <div class="p-3 bg-light rounded-3 mb-4 border">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">রুম ভাড়া :</span>
+                        <strong class="fs-6">@BanglaHelper.ToBanglaCurrency(Model.RoomRent)</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">বিদ্যুৎ বিল :</span>
+                        <strong class="text-info fs-6">@BanglaHelper.ToBanglaCurrency(Model.ElectricityBill)</strong>
+                    </div>
+                    @if (Model.OtherBill > 0)
+                    {
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-secondary">অন্যান্য বিল :</span>
+                            <strong class="text-dark fs-6">@BanglaHelper.ToBanglaCurrency(Model.OtherBill)</strong>
+                        </div>
+                    }
+                    @if (Model.PreviousDue > 0)
+                    {
+                        <div class="d-flex justify-content-between mb-2 text-danger">
+                            <span class="fw-semibold">আগের মাসের বকেয়া :</span>
+                            <strong class="fs-6">@BanglaHelper.ToBanglaCurrency(Model.PreviousDue)</strong>
+                        </div>
+                    }
+                    <hr class="my-2" />
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-dark fs-5">সর্বমোট প্রদেয় বিল :</span>
+                        <strong class="text-primary fs-4">@BanglaHelper.ToBanglaCurrency(Model.TotalBill)</strong>
+                    </div>
+
+                    @if (Model.IsPartial)
+                    {
+                        <hr class="my-2" />
+                        <div class="d-flex justify-content-between mb-1 text-success">
+                            <span class="small fw-semibold">পরিশোধিত টাকা :</span>
+                            <strong>@BanglaHelper.ToBanglaCurrency(Model.EffectivePaidAmount)</strong>
+                        </div>
+                        <div class="d-flex justify-content-between text-danger">
+                            <span class="fw-bold">অবশিষ্ট বকেয়া :</span>
+                            <strong class="fs-5">@BanglaHelper.ToBanglaCurrency(Model.EffectiveDueAmount)</strong>
+                        </div>
+                    }
+                </div>
+
+                <!-- Payment Status Action -->
+                <div class="card p-3 border mb-4">
+                    <h6 class="fw-bold text-dark mb-2">পেমেন্ট স্ট্যাটাস পরিচালনা</h6>
+                    @if (!Model.IsPaid)
+                    {
+                        <form asp-controller="Payments" asp-action="MarkPaid" method="post" class="mt-2">
+                            <input type="hidden" name="billId" value="@Model.Id" />
+                            <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold text-secondary mb-1">পেমেন্টের ধরন:</label>
+                                <div class="btn-group btn-group-sm w-100" role="group">
+                                    <input type="radio" class="btn-check" name="paymentType" id="dtPayFull" value="Full" @(!Model.IsPartial ? "checked" : "") autocomplete="off">
+                                    <label class="btn btn-outline-success" for="dtPayFull">পূর্ণ পরিশোধ</label>
+
+                                    <input type="radio" class="btn-check" name="paymentType" id="dtPayPartial" value="Partial" @(Model.IsPartial ? "checked" : "") autocomplete="off">
+                                    <label class="btn btn-outline-warning text-dark" for="dtPayPartial">আংশিক পরিশোধ</label>
+                                </div>
+                            </div>
+
+                            <div id="dtPartialSection" class="mb-2 p-2 rounded border bg-light" style="display: @(Model.IsPartial ? "block" : "none");">
+                                <label class="form-label small fw-bold text-dark mb-1">পরিশোধের পরিমাণ (টাকা):</label>
+                                <input type="number" step="0.01" min="1" class="form-control form-control-sm" name="paidAmount" id="dtPaidAmount" 
+                                       value="@(Model.IsPartial ? Model.EffectivePaidAmount : "")" placeholder="কত টাকা দিয়েছে লিখুন" />
+                            </div>
+
+                            <div class="row g-2 align-items-center">
+                                <div class="col-sm-6">
+                                    <label class="form-label small text-muted mb-1">পরিশোধের তারিখ:</label>
+                                    <input type="date" name="paidDate" class="form-control form-control-sm" value="@(Model.PaidDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"))" required />
+                                </div>
+                                <div class="col-sm-6 align-self-end">
+                                    <button type="submit" class="btn btn-success btn-sm w-100">
+                                        <i class="bi bi-check2-circle"></i> @(Model.IsPartial ? "পেমেন্ট আপডেট করুন" : "পরিশোধিত হিসেবে চিহ্নিত করুন")
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                        @if (Model.IsPartial)
+                        {
+                            <div class="mt-2 text-end">
+                                <form asp-controller="Payments" asp-action="MarkUnpaid" method="post" class="d-inline" onsubmit="return confirm('আপনি কি এই বিলটি পুনরায় সম্পূর্ণ বকেয়া করতে চান?');">
+                                    <input type="hidden" name="billId" value="@Model.Id" />
+                                    <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        <i class="bi bi-x-circle"></i> সম্পূর্ণ বকেয়া করুন
+                                    </button>
+                                </form>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge-paid me-2"><i class="bi bi-check-circle-fill"></i> পরিশোধিত</span>
+                                <span class="text-muted small">পরিশোধের তারিখ: <strong>@BanglaHelper.FormatBanglaDate(Model.PaidDate)</strong></span>
+                            </div>
+                            <form asp-controller="Payments" asp-action="MarkUnpaid" method="post" onsubmit="return confirm('আপনি কি এই বিলটি পুনরায় বকেয়া করতে চান?');">
+                                <input type="hidden" name="billId" value="@Model.Id" />
+                                <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-x-circle"></i> পুনরায় বকেয়া করুন
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই বিলটি মুছে ফেলতে চান?');">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-trash"></i> বিলটি মুছুন
+                        </button>
+                    </form>
+
+                    <div class="d-flex gap-2">
+                        <a asp-action="DownloadPdf" asp-route-id="@Model.Id" class="btn btn-danger btn-sm" target="_blank">
+                            <i class="bi bi-file-earmark-pdf"></i> বাংলা PDF ডাউনলোড
+                        </a>
+                        <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-primary-custom btn-sm" target="_blank">
+                            <i class="bi bi-printer"></i> রশিদ প্রিন্ট করুন
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const dtPayFull = document.getElementById('dtPayFull');
+        const dtPayPartial = document.getElementById('dtPayPartial');
+        const dtPartialSection = document.getElementById('dtPartialSection');
+        const dtPaidAmount = document.getElementById('dtPaidAmount');
+
+        if (dtPayFull && dtPayPartial && dtPartialSection) {
+            dtPayFull.addEventListener('change', function () {
+                if (this.checked) {
+                    dtPartialSection.style.display = 'none';
+                    if (dtPaidAmount) dtPaidAmount.required = false;
+                }
+            });
+
+            dtPayPartial.addEventListener('change', function () {
+                if (this.checked) {
+                    dtPartialSection.style.display = 'block';
+                    if (dtPaidAmount) {
+                        dtPaidAmount.required = true;
+                        dtPaidAmount.focus();
+                    }
+                }
+            });
+        }
+    </script>
+}

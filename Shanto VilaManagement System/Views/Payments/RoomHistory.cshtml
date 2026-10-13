@@ -1,0 +1,188 @@
+@model IEnumerable<Shanto_VilaManagement_System.Models.MonthlyBill>
+@{
+    var room = ViewBag.Room as Shanto_VilaManagement_System.Models.Room;
+    ViewData["Title"] = $"রুম {room?.RoomNumber} পেমেন্ট ইতিহাস";
+}
+
+<!-- Page Header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h1 class="h3 fw-bold text-dark mb-0">
+                <i class="bi bi-clock-history text-primary me-2"></i>রুম @BanglaHelper.ToBanglaDigits(room?.RoomNumber) - পেমেন্ট ইতিহাস
+            </h1>
+            <span class="@room?.StatusBadgeClass">@room?.StatusBangla</span>
+        </div>
+        <p class="text-secondary mb-0 small">
+            ভাড়াটিয়া: <strong>@(room?.PrimaryTenant?.Name ?? "খালি / অনির্ধারিত")</strong> | মাসিক ভাড়া: <strong>@BanglaHelper.ToBanglaCurrency(room?.RoomRent ?? 0)</strong>
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a asp-controller="Rooms" asp-action="Details" asp-route-id="@room?.Id" class="btn btn-outline-custom">
+            <i class="bi bi-door-open"></i> রুমের বিস্তারিত
+        </a>
+        <a asp-action="Index" class="btn btn-outline-custom">
+            <i class="bi bi-arrow-left"></i> সকল পেমেন্ট
+        </a>
+    </div>
+</div>
+
+<!-- History Timeline / Cards (Requirement #27) -->
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="custom-card">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">
+                    <i class="bi bi-receipt text-primary"></i>
+                    <span>ধারাবাহিক বিল ও পেমেন্ট রেকর্ড (@BanglaHelper.ToBanglaDigits(Model.Count()) টি)</span>
+                </h2>
+            </div>
+
+            <div class="card-body-custom">
+                @if (!Model.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-journal-x fs-1 d-block mb-2"></i>
+                        এই রুমের এখনো কোনো বিলের ইতিহাস তৈরি হয়নি।
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var bill in Model)
+                        {
+                            <div class="list-group-item p-3 border rounded-3 mb-3 bg-white shadow-sm">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <h5 class="fw-bold text-dark mb-0">@bill.BillingMonth</h5>
+                                        <span class="small text-muted">ভাড়াটিয়া: @bill.TenantName</span>
+                                    </div>
+
+                                    <div>
+                                        @if (bill.IsPaid)
+                                        {
+                                            <span class="badge-paid">
+                                                <i class="bi bi-check-circle-fill"></i> পরিশোধিত
+                                            </span>
+                                        }
+                                        else if (bill.IsPartial)
+                                        {
+                                            <span class="badge-partial">
+                                                <i class="bi bi-pie-chart-fill"></i> আংশিক পরিশোধ
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-unpaid">
+                                                <i class="bi bi-clock-history"></i> বকেয়া
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 py-2 my-1 border-top border-bottom small">
+                                    <div class="col-6 col-sm-3">
+                                        <span class="text-muted d-block">রুম ভাড়া:</span>
+                                        <strong class="text-dark">@BanglaHelper.ToBanglaCurrency(bill.RoomRent)</strong>
+                                    </div>
+                                    <div class="col-6 col-sm-3">
+                                        <span class="text-muted d-block">বিদ্যুৎ বিল:</span>
+                                        <strong class="text-info">@BanglaHelper.ToBanglaCurrency(bill.ElectricityBill)</strong>
+                                    </div>
+                                    <div class="col-6 col-sm-3">
+                                        <span class="text-muted d-block">ব্যবহৃত ইউনিট:</span>
+                                        <strong class="text-dark">@BanglaHelper.ToBanglaNumber(bill.UsedUnit, true)</strong>
+                                    </div>
+                                    <div class="col-6 col-sm-3">
+                                        <span class="text-muted d-block">মোট বিল:</span>
+                                        <strong class="text-primary fs-6">@BanglaHelper.ToBanglaCurrency(bill.TotalBill)</strong>
+                                        @if (bill.PreviousDue > 0)
+                                        {
+                                            <div class="text-danger" style="font-size: 0.72rem;">(পূর্বের বকেয়া সহ)</div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 pt-1">
+                                    <div class="small">
+                                        @if (bill.IsPaid)
+                                        {
+                                            <span class="text-success fw-semibold">
+                                                <i class="bi bi-check2-all me-1"></i>পরিশোধের তারিখ: @BanglaHelper.FormatBanglaDate(bill.PaidDate)
+                                            </span>
+                                        }
+                                        else if (bill.IsPartial)
+                                        {
+                                            <span class="text-warning fw-semibold">
+                                                <i class="bi bi-pie-chart me-1"></i>আংশিক পরিশোধ (জমা: @BanglaHelper.ToBanglaCurrency(bill.EffectivePaidAmount), বাকি: @BanglaHelper.ToBanglaCurrency(bill.EffectiveDueAmount))
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-danger fw-semibold">
+                                                <i class="bi bi-exclamation-circle me-1"></i>বিল এখনো অপরিশোধিত রয়েছে
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <div class="d-flex gap-1">
+                                        <a asp-controller="Bills" asp-action="DownloadPdf" asp-route-id="@bill.Id" class="btn btn-sm btn-light border text-danger" title="PDF ডাউনলোড" target="_blank">
+                                            <i class="bi bi-file-earmark-pdf"></i> PDF
+                                        </a>
+                                        <a asp-controller="Bills" asp-action="Print" asp-route-id="@bill.Id" class="btn btn-sm btn-light border" title="প্রিন্ট ভিউ" target="_blank">
+                                            <i class="bi bi-printer"></i>
+                                        </a>
+                                        <a asp-controller="Bills" asp-action="Details" asp-route-id="@bill.Id" class="btn btn-sm btn-light border text-primary">
+                                            <i class="bi bi-eye"></i> বিস্তারিত
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Box -->
+    <div class="col-lg-4">
+        <div class="custom-card">
+            <div class="card-header-custom">
+                <h3 class="card-title-custom">
+                    <i class="bi bi-pie-chart-fill text-primary"></i>
+                    <span>সারসংক্ষেপ</span>
+                </h3>
+            </div>
+            <div class="card-body-custom">
+                <div class="p-3 bg-light rounded-3 mb-3 border">
+                    <span class="text-secondary small fw-semibold">মোট প্রদেয় বিল</span>
+                    <div class="fs-4 fw-bold text-dark mt-1">
+                        @BanglaHelper.ToBanglaCurrency(Model.Sum(b => b.TotalBill))
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-3 mb-3 border" style="background: #f0fdf4; border-color: #bbf7d0 !important;">
+                    <span class="text-success small fw-semibold">পরিশোধিত</span>
+                    <div class="fs-4 fw-bold text-success mt-1">
+                        @BanglaHelper.ToBanglaCurrency(Model.Where(b => b.IsPaid).Sum(b => b.TotalBill))
+                    </div>
+                    <div class="small text-success mt-1">
+                        @BanglaHelper.ToBanglaDigits(Model.Count(b => b.IsPaid)) টি বিল পরিশোধিত
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-3 border" style="background: #fef2f2; border-color: #fecaca !important;">
+                    <span class="text-danger small fw-semibold">মোট বকেয়া</span>
+                    <div class="fs-4 fw-bold text-danger mt-1">
+                        @BanglaHelper.ToBanglaCurrency(Model.Where(b => !b.IsPaid).Sum(b => b.TotalBill))
+                    </div>
+                    <div class="small text-danger mt-1">
+                        @BanglaHelper.ToBanglaDigits(Model.Count(b => !b.IsPaid)) টি বিল বকেয়া
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

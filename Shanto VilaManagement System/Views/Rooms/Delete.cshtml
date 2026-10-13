@@ -1,0 +1,90 @@
+@model Shanto_VilaManagement_System.Models.Room
+@{
+    ViewData["Title"] = $"রুম {Model.RoomNumber} ডিলিট নিশ্চিতকরণ";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="custom-card border-danger">
+            <div class="card-header-custom bg-danger bg-opacity-10 border-danger border-opacity-25">
+                <h2 class="card-title-custom text-danger">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span>রুম ডিলিট নিশ্চিতকরণ</span>
+                </h2>
+                <a asp-action="Index" class="btn btn-sm btn-outline-custom">ফিরে যান</a>
+            </div>
+
+            <div class="card-body-custom">
+                @if (Model.MonthlyBills.Any())
+                {
+                    <div class="alert alert-warning border-0 rounded-3 mb-4">
+                        <h6 class="fw-bold mb-1">
+                            <i class="bi bi-shield-exclamation me-1"></i>ঐতিহাসিক বিল সতর্কতা!
+                        </h6>
+                        <p class="small mb-0">
+                            এই রুমের অধীনে ইতোমধ্যে <strong>@BanglaHelper.ToBanglaDigits(Model.MonthlyBills.Count)</strong> টি মাসিক বিলের হিসাব সংরক্ষিত আছে। রুম স্থায়ীভাবে মুছে ফেললে আর্থিক হিসাব নষ্ট হতে পারে।
+                        </p>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 mb-4 border text-center">
+                        <p class="mb-2 fw-semibold text-dark">উত্তম সমাধান:</p>
+                        <form asp-action="SetStatus" asp-route-id="@Model.Id" method="post" class="d-inline">
+                            <input type="hidden" name="status" value="Inactive" />
+                            <button type="submit" class="btn btn-warning btn-sm me-2">
+                                <i class="bi bi-pause-circle"></i> রুমটি নিষ্ক্রিয় (Inactive) করুন
+                            </button>
+                        </form>
+                        <form asp-action="SetStatus" asp-route-id="@Model.Id" method="post" class="d-inline">
+                            <input type="hidden" name="status" value="Vacant" />
+                            <button type="submit" class="btn btn-secondary btn-sm">
+                                <i class="bi bi-door-open"></i> খালি (Vacant) চিহ্নিত করুন
+                            </button>
+                        </form>
+                    </div>
+                }
+
+                <div class="mb-4">
+                    <p class="text-danger fw-bold mb-2">আপনি কি নিশ্চিতভাবে এই রুমটি মুছে ফেলতে চান?</p>
+                    <ul class="list-group list-group-flush small">
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>রুম নম্বর:</span>
+                            <strong>@BanglaHelper.ToBanglaDigits(Model.RoomNumber)</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>মাসিক ভাড়া:</span>
+                            <strong>@BanglaHelper.ToBanglaCurrency(Model.RoomRent)</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>বাসিন্দা সংখ্যা:</span>
+                            <strong>@BanglaHelper.ToBanglaDigits(Model.Residents.Count) জন</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>মোট বিলের রেকর্ড:</span>
+                            <strong>@BanglaHelper.ToBanglaDigits(Model.MonthlyBills.Count) টি</strong>
+                        </li>
+                    </ul>
+                </div>
+
+                <form asp-action="Delete" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    @if (Model.MonthlyBills.Any())
+                    {
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="forceDelete" value="true" id="forceCheck" required>
+                            <label class="form-check-label small text-danger fw-semibold" for="forceCheck">
+                                আমি অবগত যে এই রুম এবং এর সাথে জড়িত সকল পূর্ববর্তী বিল মুছে যাবে।
+                            </label>
+                        </div>
+                    }
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger flex-grow-1 justify-content-center">
+                            <i class="bi bi-trash"></i> হ্যাঁ, পার্মানেন্ট ডিলিট করুন
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-custom">বাতিল</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

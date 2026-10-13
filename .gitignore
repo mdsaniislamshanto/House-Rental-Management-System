@@ -1,0 +1,25 @@
+## Visual Studio / Dotnet ignores
+bin/
+obj/
+.vs/
+*.user
+*.suo
+_SAFE_BACKUP*
+scratch/
+sanitized_public_export/
+
+# Local databases and backups
+*.db
+*.sqlite
+*.sql
+*.zip
+*.bak
+
+# Environment / local development settings
+appsettings.Development.json
+
+# User Uploads
+wwwroot/uploads/residents/photos/*
+!wwwroot/uploads/residents/photos/.gitkeep
+wwwroot/uploads/residents/nid/*
+!wwwroot/uploads/residents/nid/.gitkeep

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>@ViewData["Title"] - শান্ত ভিলা হাউজ ম্যানেজমেন্ট</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <!-- PWA Settings -->
+    <link rel="manifest" href="~/manifest.json" />
+    <meta name="theme-color" content="#1e40af" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="শান্ত ভিলা" />
+    <link rel="apple-touch-icon" href="~/icons/icon-192.png" />
+</head>
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="app-wrapper">
+        <!-- Sidebar Drawer -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-header d-flex justify-content-between align-items-center">
+                <a asp-controller="Dashboard" asp-action="Index" class="brand-badge text-decoration-none">
+                    <div class="brand-icon">
+                        <i class="bi bi-houses-fill"></i>
+                    </div>
+                    <div>
+                        <h2 class="brand-title">শান্ত ভিলা</h2>
+                        <p class="brand-subtitle">House Management</p>
+                    </div>
+                </a>
+                <button class="btn-close-sidebar d-lg-none" id="sidebarClose" type="button" aria-label="Close navigation">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <p class="nav-section-title">প্রধান মেনু</p>
+
+                <a asp-controller="Dashboard" asp-action="Index" 
+                   class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")">
+                    <i class="bi bi-grid-1x2-fill"></i>
+                    <span>ড্যাশবোর্ড</span>
+                </a>
+
+                <a asp-controller="Rooms" asp-action="Index" 
+                   class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Rooms" ? "active" : "")">
+                    <i class="bi bi-door-open-fill"></i>
+                    <span>রুম ম্যানেজমেন্ট</span>
+                </a>
+
+                <a asp-controller="Residents" asp-action="Index" 
+                   class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Residents" ? "active" : "")">
+                    <i class="bi bi-people-fill"></i>
+                    <span>বাসিন্দা ও ভাড়াটিয়া</span>
+                </a>
+
+                <p class="nav-section-title">বিলিং ও বিদ্যুৎ</p>
+
+                <a asp-controller="Electricity" asp-action="Index" 
+                   class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Electricity" ? "active" : "")">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>মিটার রিডিং এন্ট্রি</span>
+                </a>
+
+                <a asp-controller="Bills" asp-action="Index" 
+                   class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Bills" ? "active" : "")">
+                    <i class="bi bi-receipt"></i>
+                    <span>মাসিক বিল সমূহ</span>
+                </a>
+
+                <a asp-controller="Payments" asp-action="Index" 
+                   class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Payments" ? "active" : "")">
+                    <i class="bi bi-cash-stack"></i>
+                    <span>পেমেন্ট ও বকেয়া</span>
+                </a>
+
+                <p class="nav-section-title">সিস্টেম ও অনুসন্ধান</p>
+
+                <a asp-controller="Search" asp-action="Index" 
+                   class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Search" ? "active" : "")">
+                    <i class="bi bi-search"></i>
+                    <span>অনুসন্ধান</span>
+                </a>
+
+                <a asp-controller="Settings" asp-action="Index" 
+                   class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Settings" ? "active" : "")">
+                    <i class="bi bi-gear-fill"></i>
+                    <span>সেটিংস</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a asp-controller="Electricity" asp-action="Index" class="btn btn-primary-custom w-100 justify-content-center">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                    <span>নতুন রিডিং নিন</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="app-main">
+            <!-- Modern Topbar -->
+            <header class="app-topbar">
+                <div class="d-flex align-items-center gap-2">
+                    <button class="sidebar-toggle-btn d-lg-none" id="sidebarToggle" type="button" aria-label="Toggle Navigation">
+                        <i class="bi bi-list fs-5"></i>
+                    </button>
+
+                    <a asp-controller="Dashboard" asp-action="Index" class="mobile-brand d-lg-none text-decoration-none">
+                        <div class="brand-icon-sm">
+                            <i class="bi bi-houses-fill"></i>
+                        </div>
+                        <span class="mobile-brand-name">শান্ত ভিলা</span>
+                    </a>
+
+                    <form asp-controller="Search" asp-action="Index" method="get" class="topbar-search d-none d-md-block">
+                        <i class="bi bi-search"></i>
+                        <input type="text" name="q" placeholder="রুম নং, ভাড়াটিয়ার নাম বা ফোন..." value="@Context.Request.Query["q"]" />
+                    </form>
+                </div>
+
+                <div class="topbar-actions">
+                    <a asp-controller="Search" asp-action="Index" class="topbar-icon-btn d-md-none" title="অনুসন্ধান" aria-label="Search">
+                        <i class="bi bi-search"></i>
+                    </a>
+
+                    <span class="house-pill d-none d-sm-inline-flex">
+                        <i class="bi bi-geo-alt-fill text-primary"></i>
+                        <span>শান্ত ভিলা</span>
+                    </span>
+
+                    <span class="text-secondary small d-none d-md-inline date-display">
+                        <i class="bi bi-calendar3 me-1"></i>
+                        @BanglaHelper.FormatBanglaDateFull(DateTime.Now)
+                    </span>
+
+                    <a asp-controller="Settings" asp-action="Index" class="topbar-icon-btn d-lg-none" title="সেটিংস" aria-label="Settings">
+                        <i class="bi bi-gear-fill"></i>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Page Body -->
+            <main class="page-container">
+                <!-- Alerts / Flash Messages -->
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-4 mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                        @Html.Raw(TempData["SuccessMessage"])
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-4 mb-4" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                        @Html.Raw(TempData["ErrorMessage"])
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation Bar (Native App Style) -->
+    <nav class="mobile-bottom-nav d-lg-none" aria-label="Mobile Navigation">
+        <a asp-controller="Dashboard" asp-action="Index" 
+           class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")">
+            <div class="nav-icon-wrapper">
+                <i class="bi bi-grid-1x2-fill"></i>
+            </div>
+            <span>হোম</span>
+        </a>
+
+        <a asp-controller="Rooms" asp-action="Index" 
+           class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Rooms" ? "active" : "")">
+            <div class="nav-icon-wrapper">
+                <i class="bi bi-door-open-fill"></i>
+            </div>
+            <span>রুম</span>
+        </a>
+
+        <a asp-controller="Electricity" asp-action="Index" 
+           class="bottom-nav-item bottom-nav-center @(ViewContext.RouteData.Values["controller"]?.ToString() == "Electricity" ? "active" : "")">
+            <div class="center-fab">
+                <i class="bi bi-lightning-charge-fill"></i>
+            </div>
+            <span class="center-label">মিটার</span>
+        </a>
+
+        <a asp-controller="Bills" asp-action="Index" 
+           class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Bills" ? "active" : "")">
+            <div class="nav-icon-wrapper">
+                <i class="bi bi-receipt"></i>
+            </div>
+            <span>বিল</span>
+        </a>
+
+        <a asp-controller="Residents" asp-action="Index" 
+           class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Residents" ? "active" : "")">
+            <div class="nav-icon-wrapper">
+                <i class="bi bi-people-fill"></i>
+            </div>
+            <span>বাসিন্দা</span>
+        </a>
+    </nav>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Sidebar drawer handling
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarClose = document.getElementById('sidebarClose');
+        const appSidebar = document.getElementById('appSidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function openDrawer() {
+            if (appSidebar && sidebarOverlay) {
+                appSidebar.classList.add('show');
+                sidebarOverlay.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeDrawer() {
+            if (appSidebar && sidebarOverlay) {
+                appSidebar.classList.remove('show');
+                sidebarOverlay.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
+
+        if (sidebarToggle) sidebarToggle.addEventListener('click', openDrawer);
+        if (sidebarClose) sidebarClose.addEventListener('click', closeDrawer);
+        if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeDrawer);
+
+        // Close sidebar on link navigation
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 992) closeDrawer();
+            });
+        });
+    </script>
+    <script>
+        // PWA Service Worker Registration & Auto-update
+        if ('serviceWorker' in navigator) {
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
+
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js?v=6').then(reg => {
+                    reg.update();
+                }).catch(err => console.log('SW reg error:', err));
+            });
+        }
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

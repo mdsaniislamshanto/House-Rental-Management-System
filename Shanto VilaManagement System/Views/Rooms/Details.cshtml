@@ -1,0 +1,641 @@
+@model Shanto_VilaManagement_System.Models.Room
+@{
+    ViewData["Title"] = $"রুম {Model.RoomNumber} বিবরণ";
+}
+
+<!-- Page Header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h1 class="h3 fw-bold text-dark mb-0">রুম @BanglaHelper.ToBanglaDigits(Model.RoomNumber)</h1>
+            <span class="@Model.StatusBadgeClass">@Model.StatusBangla</span>
+        </div>
+        <p class="text-secondary mb-0 small">
+            মাসিক ভাড়া: <strong>@BanglaHelper.ToBanglaCurrency(Model.RoomRent)</strong> | মিটার নং: <strong>@(Model.MeterNumber ?? "—")</strong>
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a asp-controller="Electricity" asp-action="SingleEntry" asp-route-roomId="@Model.Id" class="btn btn-primary-custom">
+            <i class="bi bi-speedometer2"></i> রিডিং এন্ট্রি
+        </a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-custom">
+            <i class="bi bi-pencil"></i> এডিট
+        </a>
+        <a asp-action="Index" class="btn btn-outline-custom">
+            <i class="bi bi-arrow-left"></i> সকল রুম
+        </a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Room Summary & Status Toggle Card -->
+    <div class="col-md-4">
+        <div class="custom-card h-100">
+            <div class="card-header-custom">
+                <h3 class="card-title-custom">
+                    <i class="bi bi-info-circle-fill text-primary"></i>
+                    <span>রুমের তথ্য</span>
+                </h3>
+            </div>
+            <div class="card-body-custom">
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">রুম নম্বর:</span>
+                        <strong class="text-dark">@BanglaHelper.ToBanglaDigits(Model.RoomNumber)</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">মাসিক ভাড়া:</span>
+                        <strong class="text-primary fs-6">@BanglaHelper.ToBanglaCurrency(Model.RoomRent)</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">অন্যান্য বিল:</span>
+                        <span>@(Model.OtherBill.HasValue ? BanglaHelper.ToBanglaCurrency(Model.OtherBill.Value) : "সাধারণ সেটিংস প্রযোজ্য")</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">মিটার নম্বর:</span>
+                        <span>@(Model.MeterNumber ?? "—")</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">প্রারম্ভিক মিটার রিডিং:</span>
+                        <strong>@BanglaHelper.ToBanglaNumber(Model.InitialMeterReading, true)</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">বর্তমান অবস্থা:</span>
+                        <span class="@Model.StatusBadgeClass">@Model.StatusBangla</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">তৈরির তারিখ:</span>
+                        <span>@BanglaHelper.FormatBanglaDateFull(Model.CreatedAt)</span>
+                    </li>
+                </ul>
+
+                <hr />
+
+                <!-- Quick Status Change Form -->
+                <form asp-action="SetStatus" asp-route-id="@Model.Id" method="post" class="mt-3">
+                    <label class="form-label small fw-semibold text-muted">অবস্থা পরিবর্তন করুন:</label>
+                    <div class="input-group input-group-sm">
+                        <select name="status" class="form-select">
+                            <option value="Occupied" selected="@(Model.Status == "Occupied")">ভাড়া দেওয়া (Occupied)</option>
+                            <option value="Vacant" selected="@(Model.Status == "Vacant")">খালি (Vacant)</option>
+                            <option value="Inactive" selected="@(Model.Status == "Inactive")">নিষ্ক্রিয় (Inactive)</option>
+                        </select>
+                        <button type="submit" class="btn btn-outline-custom">সেভ</button>
+                    </div>
+                </form>
+
+                <div class="mt-3">
+                    <a asp-controller="Payments" asp-action="RoomHistory" asp-route-roomId="@Model.Id" class="btn btn-light w-100 text-primary border fw-semibold btn-sm">
+                        <i class="bi bi-clock-history me-1"></i> এই রুমের সম্পূর্ণ পেমেন্ট ইতিহাস
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emergency Contacts Card (Requirement #11) -->
+    <div class="col-md-8">
+        <div class="custom-card h-100">
+            <div class="card-header-custom">
+                <h3 class="card-title-custom">
+                    <i class="bi bi-telephone-plus-fill text-danger"></i>
+                    <span>জরুরী যোগাযোগ (Emergency Contacts)</span>
+                </h3>
+                <button type="button" class="btn btn-sm btn-outline-custom" data-bs-toggle="modal" data-bs-target="#addEmergencyModal">
+                    <i class="bi bi-plus"></i> নতুন যোগাযোগ
+                </button>
+            </div>
+            <div class="card-body-custom p-0">
+                <!-- Desktop Table View -->
+                <div class="table-responsive d-none d-md-block">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>নাম</th>
+                                <th>সম্পর্ক</th>
+                                <th>মোবাইল নম্বর</th>
+                                <th>ঠিকানা</th>
+                                <th class="text-end">মুছুন</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.EmergencyContacts.Any())
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        এই রুমের জন্য কোনো জরুরী যোগাযোগকারী ব্যক্তি যুক্ত করা হয়নি।
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var contact in Model.EmergencyContacts)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@contact.Name</td>
+                                        <td><span class="badge bg-light text-dark border">@contact.Relationship</span></td>
+                                        <td>
+                                            <a href="tel:@contact.Phone" class="text-decoration-none text-dark">
+                                                <i class="bi bi-telephone text-primary me-1"></i>@contact.Phone
+                                            </a>
+                                        </td>
+                                        <td class="small text-secondary">@(contact.Address ?? "—")</td>
+                                        <td class="text-end">
+                                            <form asp-controller="EmergencyContacts" asp-action="Delete" asp-route-id="@contact.Id" asp-route-roomId="@Model.Id" method="post" onsubmit="return confirm('আপনি কি এই জরুরী যোগাযোগ মুছে ফেলতে চান?');">
+                                                <button type="submit" class="btn btn-sm btn-light text-danger">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile Card View -->
+                <div class="d-md-none p-3">
+                    @if (!Model.EmergencyContacts.Any())
+                    {
+                        <div class="text-center py-3 text-muted small">
+                            এই রুমের জন্য কোনো জরুরী যোগাযোগকারী ব্যক্তি যুক্ত করা হয়নি।
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var contact in Model.EmergencyContacts)
+                        {
+                            <div class="mobile-data-card p-3 mb-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <span class="fw-bold text-dark">@contact.Name</span>
+                                        <span class="badge bg-light text-dark border ms-1">@contact.Relationship</span>
+                                    </div>
+                                    <form asp-controller="EmergencyContacts" asp-action="Delete" asp-route-id="@contact.Id" asp-route-roomId="@Model.Id" method="post" onsubmit="return confirm('আপনি কি এই জরুরী যোগাযোগ মুছে ফেলতে চান?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center small">
+                                    <a href="tel:@contact.Phone" class="text-decoration-none text-primary fw-semibold">
+                                        <i class="bi bi-telephone-fill me-1"></i>@contact.Phone
+                                    </a>
+                                    <span class="text-muted">@(contact.Address ?? "—")</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section: Residents (ভাড়াটিয়া ও বাসিন্দা) (Requirement #7, #8, #9, #10) -->
+<div class="custom-card mb-4">
+    <div class="card-header-custom">
+        <h3 class="card-title-custom">
+            <i class="bi bi-people-fill text-primary"></i>
+            <span>বাসিন্দা ও ভাড়াটিয়া তালিকা (@BanglaHelper.ToBanglaDigits(Model.Residents.Count(r => r.IsActive)) জন)</span>
+        </h3>
+        @if (Model.Residents.Any(r => r.IsActive))
+        {
+            <a asp-controller="Residents" asp-action="Create" asp-route-roomId="@Model.Id" asp-route-isAddMember="true" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-person-plus-fill me-1"></i> এই রুমে আরো সদস্য যোগ করুন
+            </a>
+        }
+        else
+        {
+            <a asp-controller="Residents" asp-action="Create" asp-route-roomId="@Model.Id" class="btn btn-sm btn-primary-custom">
+                <i class="bi bi-person-plus-fill me-1"></i> নতুন ভাড়াটিয়া যোগ করুন
+            </a>
+        }
+    </div>
+    <div class="card-body-custom p-0">
+        <!-- Desktop Table View -->
+        <div class="table-responsive d-none d-md-block">
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th>ছবি</th>
+                        <th>নাম ও মর্যাদা</th>
+                        <th>সম্পর্ক</th>
+                        <th>মোবাইল নম্বর</th>
+                        <th>পেশা ও প্রতিষ্ঠান</th>
+                        <th>ডকুমেন্ট (NID)</th>
+                        <th class="text-end">একশন</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Residents.Any(r => r.IsActive))
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                বর্তমানে এই রুমে কোনো সক্রিয় বাসিন্দা নেই। উপরের বাটনে ক্লিক করে নতুন বাসিন্দা যোগ করুন।
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var res in Model.Residents.Where(r => r.IsActive).OrderByDescending(r => r.IsPrimaryTenant))
+                        {
+                            <tr>
+                                <td style="width: 60px;">
+                                    @if (!string.IsNullOrWhiteSpace(res.Photo))
+                                    {
+                                        <img src="@res.Photo" alt="@res.Name" class="resident-avatar" />
+                                    }
+                                    else
+                                    {
+                                        <div class="resident-avatar d-flex align-items-center justify-content-center bg-light text-secondary">
+                                            <i class="bi bi-person fs-4"></i>
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-controller="Residents" asp-action="Details" asp-route-id="@res.Id" class="fw-bold text-dark text-decoration-none">
+                                        @res.Name
+                                    </a>
+                                    @if (res.IsPrimaryTenant)
+                                    {
+                                        <span class="badge bg-primary ms-1" style="font-size: 0.7rem;">প্রধান ভাড়াটিয়া</span>
+                                    }
+                                    @if (res.AdvanceAmount > 0)
+                                    {
+                                        <span class="badge bg-success ms-1" style="font-size: 0.7rem;" title="অগ্রিম জমার পরিমাণ">
+                                            অগ্রিম: @BanglaHelper.ToBanglaCurrency(res.AdvanceAmount)
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">@res.Relationship</span>
+                                </td>
+                                <td>
+                                    <a href="tel:@res.Phone" class="text-dark text-decoration-none">
+                                        @res.Phone
+                                    </a>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">@(res.Profession ?? "—")</div>
+                                    <div class="small text-muted">@(res.Organization ?? "")</div>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        @if (!string.IsNullOrWhiteSpace(res.NIDFront))
+                                        {
+                                            <a href="@res.NIDFront" target="_blank" class="badge bg-light text-primary border text-decoration-none" title="NID Front">
+                                                <i class="bi bi-card-image"></i> ফ্রন্ট
+                                            </a>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(res.NIDBack))
+                                        {
+                                            <a href="@res.NIDBack" target="_blank" class="badge bg-light text-primary border text-decoration-none" title="NID Back">
+                                                <i class="bi bi-card-image"></i> ব্যাক
+                                            </a>
+                                        }
+                                        @if (string.IsNullOrWhiteSpace(res.NIDFront) && string.IsNullOrWhiteSpace(res.NIDBack))
+                                        {
+                                            <span class="text-muted small">নেই</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a asp-controller="Residents" asp-action="Details" asp-route-id="@res.Id" class="btn btn-light" title="প্রোফাইল">
+                                            <i class="bi bi-eye text-primary"></i>
+                                        </a>
+                                        <a asp-controller="Residents" asp-action="Edit" asp-route-id="@res.Id" class="btn btn-light" title="এডিট">
+                                            <i class="bi bi-pencil text-secondary"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="d-md-none p-3">
+            @if (!Model.Residents.Any(r => r.IsActive))
+            {
+                <div class="text-center py-4 text-muted">
+                    বর্তমানে এই রুমে কোনো সক্রিয় বাসিন্দা নেই। উপরের বাটনে ক্লিক করে নতুন বাসিন্দা যোগ করুন।
+                </div>
+            }
+            else
+            {
+                @foreach (var res in Model.Residents.Where(r => r.IsActive).OrderByDescending(r => r.IsPrimaryTenant))
+                {
+                    <div class="mobile-data-card">
+                        <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
+                            @if (!string.IsNullOrWhiteSpace(res.Photo))
+                            {
+                                <img src="@res.Photo" alt="@res.Name" class="resident-avatar" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;" />
+                            }
+                            else
+                            {
+                                <div class="resident-avatar d-flex align-items-center justify-content-center bg-light text-secondary" 
+                                     style="width: 44px; height: 44px; border-radius: 50%;">
+                                    <i class="bi bi-person fs-4"></i>
+                                </div>
+                            }
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                    <a asp-controller="Residents" asp-action="Details" asp-route-id="@res.Id" class="fw-bold text-dark text-decoration-none">
+                                        @res.Name
+                                    </a>
+                                    <span class="badge bg-light text-dark border" style="font-size: 0.65rem;">@res.Relationship</span>
+                                    @if (res.IsPrimaryTenant)
+                                    {
+                                        <span class="badge bg-primary" style="font-size: 0.65rem;">প্রধান ভাড়াটিয়া</span>
+                                    }
+                                </div>
+                                <div class="text-muted small">
+                                    @(res.Profession ?? "—") @(!string.IsNullOrWhiteSpace(res.Organization) ? $"({res.Organization})" : "")
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-metrics-grid mb-2">
+                            <div class="metric-box">
+                                <span class="metric-label">মোবাইল নম্বর</span>
+                                <span class="metric-val">
+                                    @if (!string.IsNullOrWhiteSpace(res.Phone) && res.Phone != "—")
+                                    {
+                                        <a href="tel:@res.Phone" class="text-decoration-none text-primary fw-bold" style="font-size: 0.85rem;">
+                                            <i class="bi bi-telephone-fill me-1"></i>@res.Phone
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </span>
+                            </div>
+                            <div class="metric-box">
+                                <span class="metric-label">অগ্রিম টাকা</span>
+                                <span class="metric-val text-success">
+                                    @(res.AdvanceAmount > 0 ? BanglaHelper.ToBanglaCurrency(res.AdvanceAmount) : "—")
+                                </span>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(res.NIDFront) || !string.IsNullOrWhiteSpace(res.NIDBack))
+                        {
+                            <div class="d-flex gap-2 mb-2 p-1 bg-light rounded small">
+                                <span class="text-muted">ডকুমেন্ট:</span>
+                                @if (!string.IsNullOrWhiteSpace(res.NIDFront))
+                                {
+                                    <a href="@res.NIDFront" target="_blank" class="text-decoration-none text-primary">
+                                        <i class="bi bi-card-image"></i> NID ফ্রন্ট
+                                    </a>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(res.NIDBack))
+                                {
+                                    <a href="@res.NIDBack" target="_blank" class="text-decoration-none text-primary ms-2">
+                                        <i class="bi bi-card-image"></i> NID ব্যাক
+                                    </a>
+                                }
+                            </div>
+                        }
+
+                        <div class="d-flex gap-2 pt-2 border-top">
+                            <a asp-controller="Residents" asp-action="Details" asp-route-id="@res.Id" class="btn btn-sm btn-outline-primary flex-fill">
+                                <i class="bi bi-eye"></i> বিস্তারিত প্রোফাইল
+                            </a>
+                            <a asp-controller="Residents" asp-action="Edit" asp-route-id="@res.Id" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i> এডিট
+                            </a>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Section: Monthly Bills for this Room (Requirement #31) -->
+<div class="custom-card">
+    <div class="card-header-custom">
+        <h3 class="card-title-custom">
+            <i class="bi bi-receipt text-primary"></i>
+            <span>এই রুমের পূর্ববর্তী বিল সমূহ</span>
+        </h3>
+        <a asp-controller="Electricity" asp-action="SingleEntry" asp-route-roomId="@Model.Id" class="btn btn-sm btn-primary-custom">
+            <i class="bi bi-plus-circle"></i> নতুন বিল এন্ট্রি
+        </a>
+    </div>
+    <div class="card-body-custom p-0">
+        <!-- Desktop Table View -->
+        <div class="table-responsive d-none d-md-block">
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th>বিলের মাস</th>
+                        <th>ভাড়াটিয়া</th>
+                        <th>পূর্বের রিডিং</th>
+                        <th>বর্তমান রিডিং</th>
+                        <th>ব্যবহৃত ইউনিট</th>
+                        <th>বিদ্যুৎ বিল</th>
+                        <th>রুম ভাড়া</th>
+                        <th>মোট বিল</th>
+                        <th>অবস্থা</th>
+                        <th class="text-end">ডকুমেন্ট</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.MonthlyBills.Any())
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center py-4 text-muted">
+                                এই রুমের এখনো কোনো বিল তৈরি করা হয়নি।
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var bill in Model.MonthlyBills.OrderByDescending(b => b.BillingYear).ThenByDescending(b => b.BillingMonthNumber))
+                        {
+                            <tr>
+                                <td class="fw-bold">@bill.BillingMonth</td>
+                                <td>@bill.TenantName</td>
+                                <td>@BanglaHelper.ToBanglaNumber(bill.PreviousReading, true)</td>
+                                <td>@BanglaHelper.ToBanglaNumber(bill.CurrentReading, true)</td>
+                                <td><span class="badge bg-light text-dark border">@BanglaHelper.ToBanglaNumber(bill.UsedUnit, true)</span></td>
+                                <td>@BanglaHelper.ToBanglaCurrency(bill.ElectricityBill)</td>
+                                <td>@BanglaHelper.ToBanglaCurrency(bill.RoomRent)</td>
+                                <td class="fw-bold text-primary">
+                                    @BanglaHelper.ToBanglaCurrency(bill.TotalBill)
+                                    @if (bill.OtherBill > 0)
+                                    {
+                                        <div class="small text-muted" style="font-size: 0.75rem;">(অন্যান্য: @BanglaHelper.ToBanglaCurrency(bill.OtherBill))</div>
+                                    }
+                                </td>
+                                <td>
+                                    @if (bill.IsPaid)
+                                    {
+                                        <span class="badge-paid" title="পরিশোধের তারিখ: @BanglaHelper.FormatBanglaDate(bill.PaidDate)">
+                                            <i class="bi bi-check-circle-fill"></i> পরিশোধিত
+                                        </span>
+                                    }
+                                    else if (bill.IsPartial)
+                                    {
+                                        <span class="badge-partial">
+                                            <i class="bi bi-pie-chart-fill"></i> আংশিক পরিশোধ
+                                        </span>
+                                        <div class="small text-danger fw-bold" style="font-size: 0.75rem;">বাকি: @BanglaHelper.ToBanglaCurrency(bill.EffectiveDueAmount)</div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-unpaid">
+                                            <i class="bi bi-clock-history"></i> বকেয়া
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a asp-controller="Bills" asp-action="DownloadPdf" asp-route-id="@bill.Id" class="btn btn-light" title="বাংলা PDF ডাউনলোড">
+                                            <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+                                        </a>
+                                        <a asp-controller="Bills" asp-action="Print" asp-route-id="@bill.Id" class="btn btn-light" title="প্রিন্ট ভিউ" target="_blank">
+                                            <i class="bi bi-printer-fill text-secondary"></i>
+                                        </a>
+                                        <a asp-controller="Bills" asp-action="Details" asp-route-id="@bill.Id" class="btn btn-light" title="বিস্তারিত">
+                                            <i class="bi bi-eye text-primary"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="d-md-none p-3">
+            @if (!Model.MonthlyBills.Any())
+            {
+                <div class="text-center py-4 text-muted">
+                    এই রুমের এখনো কোনো বিল তৈরি করা হয়নি।
+                </div>
+            }
+            else
+            {
+                @foreach (var bill in Model.MonthlyBills.OrderByDescending(b => b.BillingYear).ThenByDescending(b => b.BillingMonthNumber))
+                {
+                    <div class="mobile-data-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <div>
+                                <span class="fw-bold text-dark fs-6">@bill.BillingMonth</span>
+                                <div class="text-muted small">@bill.TenantName</div>
+                            </div>
+                            <div>
+                                @if (bill.IsPaid)
+                                {
+                                    <span class="badge-paid">
+                                        <i class="bi bi-check-circle-fill"></i> পরিশোধিত
+                                    </span>
+                                }
+                                else if (bill.IsPartial)
+                                {
+                                    <span class="badge-partial">
+                                        <i class="bi bi-pie-chart-fill"></i> আংশিক
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge-unpaid">
+                                        <i class="bi bi-clock-history"></i> বকেয়া
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="card-metrics-grid mb-2">
+                            <div class="metric-box">
+                                <span class="metric-label">ব্যবহৃত ইউনিট</span>
+                                <span class="metric-val text-info">@BanglaHelper.ToBanglaNumber(bill.UsedUnit, true)</span>
+                                <span class="text-muted" style="font-size: 0.7rem;">(@BanglaHelper.ToBanglaNumber(bill.PreviousReading, true) → @BanglaHelper.ToBanglaNumber(bill.CurrentReading, true))</span>
+                            </div>
+                            <div class="metric-box">
+                                <span class="metric-label">বিদ্যুৎ বিল</span>
+                                <span class="metric-val">@BanglaHelper.ToBanglaCurrency(bill.ElectricityBill)</span>
+                            </div>
+                            <div class="metric-box">
+                                <span class="metric-label">রুম ভাড়া</span>
+                                <span class="metric-val">@BanglaHelper.ToBanglaCurrency(bill.RoomRent)</span>
+                            </div>
+                            <div class="metric-box highlight-row">
+                                <span class="metric-label">মোট বিল</span>
+                                <span class="metric-val text-primary fs-6">@BanglaHelper.ToBanglaCurrency(bill.TotalBill)</span>
+                                @if (bill.OtherBill > 0)
+                                {
+                                    <div class="small text-muted" style="font-size: 0.7rem;">(অন্যান্য: @BanglaHelper.ToBanglaCurrency(bill.OtherBill))</div>
+                                }
+                                @if (bill.IsPartial)
+                                {
+                                    <span class="text-danger fw-bold" style="font-size: 0.7rem;">বাকি: @BanglaHelper.ToBanglaCurrency(bill.EffectiveDueAmount)</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 pt-2 border-top">
+                            <a asp-controller="Bills" asp-action="DownloadPdf" asp-route-id="@bill.Id" class="btn btn-sm btn-outline-danger flex-fill">
+                                <i class="bi bi-file-earmark-pdf-fill me-1"></i>PDF
+                            </a>
+                            <a asp-controller="Bills" asp-action="Print" asp-route-id="@bill.Id" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                <i class="bi bi-printer-fill"></i>
+                            </a>
+                            <a asp-controller="Bills" asp-action="Details" asp-route-id="@bill.Id" class="btn btn-sm btn-outline-primary flex-fill">
+                                <i class="bi bi-eye me-1"></i>বিস্তারিত
+                            </a>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Emergency Contact -->
+<div class="modal fade" id="addEmergencyModal" tabindex="-1" aria-labelledby="addEmergencyModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-controller="EmergencyContacts" asp-action="Create" method="post">
+                <input type="hidden" name="RoomId" value="@Model.Id" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addEmergencyModalLabel">জরুরী যোগাযোগের তথ্য যুক্ত করুন</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">নাম</label>
+                        <input type="text" name="Name" class="form-control" required placeholder="যোগাযোগকারী ব্যক্তির নাম" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">সম্পর্ক</label>
+                        <input type="text" name="Relationship" class="form-control" required placeholder="যেমন: পিতা, ভাই, আত্মীয়" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">মোবাইল নম্বর</label>
+                        <input type="text" name="Phone" class="form-control" required placeholder="01XXXXXXXXX" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">ঠিকানা</label>
+                        <textarea name="Address" class="form-control" rows="2" placeholder="বর্তমান ঠিকানা"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">বাতিল</button>
+                    <button type="submit" class="btn btn-primary-custom">সংরক্ষণ করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

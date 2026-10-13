@@ -1,0 +1,403 @@
+@model Shanto_VilaManagement_System.ViewModels.BulkMeterReadingViewModel
+@{
+    ViewData["Title"] = "বিদ্যুৎ মিটার রিডিং এন্ট্রি ও বিল গণনা";
+}
+
+<!-- Page Header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-speedometer2 text-primary me-2"></i>মাসিক মিটার রিডিং এন্ট্রি
+        </h1>
+        <p class="text-secondary mb-0 small">
+            একসাথে সকল রুমের বিদ্যুৎ মিটার রিডিং ইনপুট দিয়ে স্বয়ংক্রিয়ভাবে বিল প্রস্তুত করুন
+        </p>
+    </div>
+
+    <!-- Month & Year Selector -->
+    <form method="get" class="d-flex align-items-center gap-2">
+        <select name="month" class="form-select form-select-sm" style="width: 140px;">
+            @for (int m = 1; m <= 12; m++)
+            {
+                if (m == Model.Month)
+                {
+                    <option value="@m" selected>@BanglaHelper.GetBanglaMonthName(m)</option>
+                }
+                else
+                {
+                    <option value="@m">@BanglaHelper.GetBanglaMonthName(m)</option>
+                }
+            }
+        </select>
+        <select name="year" class="form-select form-select-sm" style="width: 110px;">
+            @for (int y = DateTime.Now.Year - 1; y <= DateTime.Now.Year + 1; y++)
+            {
+                if (y == Model.Year)
+                {
+                    <option value="@y" selected>@BanglaHelper.ToBanglaDigits(y)</option>
+                }
+                else
+                {
+                    <option value="@y">@BanglaHelper.ToBanglaDigits(y)</option>
+                }
+            }
+        </select>
+        <button type="submit" class="btn btn-outline-custom btn-sm">
+            <i class="bi bi-arrow-repeat"></i> লোড করুন
+        </button>
+    </form>
+</div>
+
+<!-- Info Banner -->
+<div class="alert alert-light border shadow-sm rounded-3 mb-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+        <i class="bi bi-info-circle-fill text-primary me-2"></i>
+        বিলের মাস: <strong class="text-primary">@BanglaHelper.FormatBillingMonthBangla(Model.Year, Model.Month)</strong> | 
+        বর্তমান ইউনিট রেট: <strong class="text-dark">@BanglaHelper.ToBanglaCurrency(Model.UnitPrice)</strong>
+    </div>
+    <div class="small text-muted">
+        * বর্তমান রিডিং ইনপুট দিলেই স্বয়ংক্রিয়ভাবে ব্যবহৃত ইউনিট ও বিদ্যুৎ বিল হিসাব হবে।
+    </div>
+</div>
+
+<form asp-action="SaveBulkReadings" method="post" id="bulkReadingForm">
+    <input type="hidden" asp-for="Year" />
+    <input type="hidden" asp-for="Month" />
+    <input type="hidden" asp-for="UnitPrice" id="unitPriceInput" value="@Model.UnitPrice" />
+
+    <div class="custom-card">
+        <div class="card-header-custom">
+            <h2 class="card-title-custom">
+                <i class="bi bi-table text-primary"></i>
+                <span>রুম ভিত্তিক মিটার রিডিং তালিকা (@BanglaHelper.ToBanglaDigits(Model.Items.Count) টি রুম)</span>
+            </h2>
+            <button type="submit" class="btn btn-primary-custom">
+                <i class="bi bi-calculator-fill"></i> হিসাব করুন ও বিল সেভ করুন
+            </button>
+        </div>
+
+        <div class="card-body-custom p-0">
+            <div class="table-responsive">
+                <table class="table-custom" id="readingsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">রুম নম্বর</th>
+                            <th>ভাড়াটিয়া</th>
+                            <th>রুম ভাড়া</th>
+                            <th style="width: 140px;">পূর্বের রিডিং (অটো / এডিট)</th>
+                            <th style="width: 160px;">বর্তমান মিটার রিডিং *</th>
+                            <th>ব্যবহৃত ইউনিট</th>
+                            <th>বিদ্যুৎ বিল</th>
+                            <th style="width: 130px;">আগের বকেয়া (৳)</th>
+                            <th>মোট বিল</th>
+                            <th class="text-end">অবস্থা</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Items.Any())
+                        {
+                            <tr>
+                                <td colspan="10" class="text-center py-4 text-muted">
+                                    কোনো সক্রিয় রুম পাওয়া যায়নি।
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @for (int i = 0; i < Model.Items.Count; i++)
+                            {
+                                var item = Model.Items[i];
+                                <tr class="reading-row @(item.HasExistingBill ? "table-light" : "")" data-index="@i">
+                                    <input type="hidden" name="Items[@i].RoomId" value="@item.RoomId" />
+                                    <input type="hidden" name="Items[@i].RoomNumber" value="@item.RoomNumber" />
+                                    <input type="hidden" name="Items[@i].TenantName" value="@item.TenantName" />
+                                    <input type="hidden" name="Items[@i].RoomRent" id="rent_@i" value="@item.RoomRent" />
+                                    <input type="hidden" name="Items[@i].OtherBill" id="other_@i" value="@item.OtherBill" />
+                                    <input type="hidden" name="Items[@i].IsEditMode" id="isEdit_@i" value="false" />
+
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a asp-controller="Rooms" asp-action="Details" asp-route-id="@item.RoomId" class="fw-bold text-primary text-decoration-none fs-6">
+                                                <i class="bi bi-door-open-fill me-1"></i>রুম @BanglaHelper.ToBanglaDigits(item.RoomNumber)
+                                            </a>
+                                            @if (!string.IsNullOrWhiteSpace(item.MeterNumber))
+                                            {
+                                                <span class="badge bg-light text-secondary border" style="font-size: 0.75rem;">@item.MeterNumber</span>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-md-none text-muted small">ভাড়াটিয়া:</div>
+                                        <span class="fw-semibold text-dark">@item.TenantName</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-md-none text-muted small">রুম ভাড়া:</div>
+                                        <span class="fw-bold text-dark">@BanglaHelper.ToBanglaCurrency(item.RoomRent)</span>
+                                        @if (item.OtherBill > 0)
+                                        {
+                                            <div class="text-secondary small" style="font-size: 0.78rem;">
+                                                অন্যান্য: @BanglaHelper.ToBanglaCurrency(item.OtherBill)
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-md-none text-muted small fw-semibold mb-1">পূর্বের রিডিং:</div>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" step="0.1" name="Items[@i].PreviousReading" id="prev_@i" 
+                                                   value="@item.PreviousReading" 
+                                                   class="form-control prev-reading-input fw-semibold @(item.HasExistingBill ? "bg-light text-muted" : "")" 
+                                                   data-index="@i"
+                                                   title="পূর্ববর্তী রিডিং"
+                                                   @(item.HasExistingBill ? "readonly" : "") />
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-md-none text-primary small fw-bold mb-1">বর্তমান মিটার রিডিং *:</div>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" step="0.1" name="Items[@i].CurrentReading" id="curr_@i" 
+                                                   value="@item.CurrentReading" 
+                                                   class="form-control current-reading-input fw-bold @(item.HasExistingBill ? "bg-light text-muted" : "")" 
+                                                   data-index="@i"
+                                                   placeholder="বর্তমান রিডিং দিন"
+                                                   @(item.HasExistingBill ? "readonly" : "") />
+                                        </div>
+                                        <div class="error-msg text-danger small mt-1" id="err_@i" style="display: none;"></div>
+                                    </td>
+                                    <td>
+                                        <div class="d-md-none text-muted small">ব্যবহৃত ইউনিট:</div>
+                                        <span class="fw-bold text-dark fs-6" id="used_@i">
+                                            @(item.CurrentReading.HasValue ? BanglaHelper.ToBanglaNumber(item.UsedUnit, true) : "—")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="d-md-none text-muted small">বিদ্যুৎ বিল:</div>
+                                        <span class="fw-bold text-info" id="elec_@i">
+                                            @(item.CurrentReading.HasValue ? BanglaHelper.ToBanglaCurrency(item.CalculatedElectricityBill(Model.UnitPrice)) : "—")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="d-md-none text-danger small fw-semibold mb-1">আগের বকেয়া (৳):</div>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" step="0.01" name="Items[@i].PreviousDue" id="prevDue_@i" 
+                                                   value="@item.PreviousDue" 
+                                                   class="form-control prev-due-input fw-semibold text-danger @(item.HasExistingBill ? "bg-light" : "")" 
+                                                   data-index="@i"
+                                                   title="পূর্ববর্তী বকেয়া থাকলে ম্যানুয়ালি লিখুন"
+                                                   placeholder="০.০০"
+                                                   oninput="recalculateRow(@i)"
+                                                   @(item.HasExistingBill ? "readonly" : "") />
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-md-none text-muted small">মোট প্রদেয় বিল:</div>
+                                        <span class="fw-bold text-primary fs-5" id="total_@i">
+                                            @(item.CurrentReading.HasValue ? BanglaHelper.ToBanglaCurrency(item.CalculatedTotalBill(Model.UnitPrice)) : "—")
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-md-none pt-2 border-top mt-1"></div>
+                                        @if (item.HasExistingBill)
+                                        {
+                                            <div class="d-flex align-items-center justify-content-end gap-1">
+                                                <span class="badge bg-success" id="badge_status_@i" title="এই মাসের রিডিং ইতিমধ্যে একবার ইনপুট সম্পন্ন হয়েছে">
+                                                    <i class="bi bi-check-circle"></i> ইনপুট সম্পন্ন
+                                                </span>
+                                                <button type="button" class="btn btn-sm btn-outline-warning py-1 px-2 fw-semibold" id="btn_edit_@i" onclick="toggleEditRow(@i)" title="সংরক্ষিত রিডিং সংশোধন করতে এডিট করুন">
+                                                    <i class="bi bi-pencil-square"></i> এডিট
+                                                </button>
+                                                <a asp-controller="Bills" asp-action="Details" asp-route-id="@item.ExistingBillId" class="btn btn-sm btn-light py-1 px-2 text-primary" title="বিল বিবরণ দেখুন">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">নতুন ইনপুট</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card-footer bg-white p-3 d-flex justify-content-between align-items-center">
+            <span class="text-muted small">
+                * বর্তমান রিডিং পূর্বের রিডিংয়ের চেয়ে কম হলে বিল হিসাব করা যাবে না (Requirement #16)।
+            </span>
+            <button type="submit" class="btn btn-primary-custom">
+                <i class="bi bi-save"></i> রিডিং সংরক্ষণ ও বিল তৈরি করুন
+            </button>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        const unitPrice = parseFloat(document.getElementById('unitPriceInput').value) || 12;
+
+        const banglaDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+        function toBanglaDigits(num) {
+            return num.toString().replace(/\d/g, d => banglaDigits[d]);
+        }
+
+        function formatCurrency(amount) {
+            return '৳' + toBanglaDigits(Math.round(amount).toLocaleString('en-US'));
+        }
+
+        function recalculateRow(idx) {
+            const prevInput = document.getElementById('prev_' + idx);
+            const prev = parseFloat(prevInput ? prevInput.value : 0) || 0;
+            const rent = parseFloat(document.getElementById('rent_' + idx).value) || 0;
+            const other = parseFloat(document.getElementById('other_' + idx)?.value) || 0;
+            const currInput = document.getElementById('curr_' + idx);
+            const currVal = currInput.value.trim();
+            const errDiv = document.getElementById('err_' + idx);
+            const usedSpan = document.getElementById('used_' + idx);
+            const elecSpan = document.getElementById('elec_' + idx);
+            const totalSpan = document.getElementById('total_' + idx);
+
+            if (currVal === '') {
+                errDiv.style.display = 'none';
+                usedSpan.textContent = '—';
+                elecSpan.textContent = '—';
+                totalSpan.textContent = '—';
+                currInput.classList.remove('is-invalid');
+                return;
+            }
+
+            const curr = parseFloat(currVal);
+
+            if (curr < prev) {
+                const prevDue = parseFloat(document.getElementById('prevDue_' + idx)?.value) || 0;
+                errDiv.textContent = 'বর্তমান মিটার রিডিং পূর্বের মিটার রিডিংয়ের চেয়ে কম হতে পারবে না।';
+                errDiv.style.display = 'block';
+                currInput.classList.add('is-invalid');
+                usedSpan.textContent = '০';
+                elecSpan.textContent = '৳০';
+                totalSpan.textContent = formatCurrency(rent + other + prevDue);
+            } else {
+                errDiv.style.display = 'none';
+                currInput.classList.remove('is-invalid');
+
+                const prevDue = parseFloat(document.getElementById('prevDue_' + idx)?.value) || 0;
+                const used = curr - prev;
+                const elec = used * unitPrice;
+                const total = rent + elec + other + prevDue;
+
+                usedSpan.textContent = toBanglaDigits(used % 1 === 0 ? used : used.toFixed(1));
+                elecSpan.textContent = formatCurrency(elec);
+                totalSpan.textContent = formatCurrency(total);
+            }
+        }
+
+        function toggleEditRow(idx) {
+            const currInput = document.getElementById('curr_' + idx);
+            const prevInput = document.getElementById('prev_' + idx);
+            const prevDueInput = document.getElementById('prevDue_' + idx);
+            const isEditInput = document.getElementById('isEdit_' + idx);
+            const btnEdit = document.getElementById('btn_edit_' + idx);
+            const badge = document.getElementById('badge_status_' + idx);
+
+            const isReadonly = currInput.hasAttribute('readonly');
+            if (isReadonly) {
+                // Enable editing
+                currInput.removeAttribute('readonly');
+                if (prevInput) prevInput.removeAttribute('readonly');
+                if (prevDueInput) prevDueInput.removeAttribute('readonly');
+                currInput.classList.remove('bg-light', 'text-muted');
+                currInput.classList.add('border-warning', 'bg-warning-subtle');
+                if (prevInput) {
+                    prevInput.classList.remove('bg-light', 'text-muted');
+                }
+                if (prevDueInput) {
+                    prevDueInput.classList.remove('bg-light');
+                    prevDueInput.classList.add('border-warning', 'bg-warning-subtle');
+                }
+                currInput.focus();
+                isEditInput.value = "true";
+                btnEdit.innerHTML = '<i class="bi bi-x-circle"></i> বাতিল';
+                btnEdit.className = 'btn btn-sm btn-outline-secondary py-1 px-2 fw-semibold';
+                if (badge) {
+                    badge.className = 'badge bg-warning text-dark';
+                    badge.innerHTML = '<i class="bi bi-pencil-fill"></i> এডিট মোড';
+                }
+            } else {
+                // Cancel editing (restore readonly)
+                currInput.setAttribute('readonly', 'readonly');
+                if (prevInput) prevInput.setAttribute('readonly', 'readonly');
+                if (prevDueInput) prevDueInput.setAttribute('readonly', 'readonly');
+                currInput.classList.add('bg-light', 'text-muted');
+                currInput.classList.remove('border-warning', 'bg-warning-subtle');
+                if (prevInput) {
+                    prevInput.classList.add('bg-light', 'text-muted');
+                }
+                if (prevDueInput) {
+                    prevDueInput.classList.add('bg-light');
+                    prevDueInput.classList.remove('border-warning', 'bg-warning-subtle');
+                }
+                isEditInput.value = "false";
+                btnEdit.innerHTML = '<i class="bi bi-pencil-square"></i> এডিট';
+                btnEdit.className = 'btn btn-sm btn-outline-warning py-1 px-2 fw-semibold';
+                if (badge) {
+                    badge.className = 'badge bg-success';
+                    badge.innerHTML = '<i class="bi bi-check-circle"></i> ইনপুট সম্পন্ন';
+                }
+            }
+        }
+
+        // Live calculation on both current and previous input changes
+        document.querySelectorAll('.current-reading-input').forEach(input => {
+            input.addEventListener('input', function () {
+                recalculateRow(this.dataset.index);
+            });
+        });
+
+        document.querySelectorAll('.prev-reading-input').forEach(input => {
+            input.addEventListener('input', function () {
+                recalculateRow(this.dataset.index);
+            });
+        });
+
+        // Form submission validation & double-click prevention
+        let isSubmitting = false;
+        document.getElementById('bulkReadingForm').addEventListener('submit', function (e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+
+            let hasError = false;
+            document.querySelectorAll('.current-reading-input').forEach(input => {
+                const idx = input.dataset.index;
+                const prev = parseFloat(document.getElementById('prev_' + idx).value) || 0;
+                const currVal = input.value.trim();
+
+                if (currVal !== '') {
+                    const curr = parseFloat(currVal);
+                    if (curr < prev) {
+                        hasError = true;
+                        input.classList.add('is-invalid');
+                    }
+                }
+            });
+
+            if (hasError) {
+                e.preventDefault();
+                alert('কিছু রুমের বর্তমান রিডিং পূর্বের রিডিংয়ের চেয়ে কম রয়েছে। দয়া করে সঠিক রিডিং দিন।');
+                return false;
+            }
+
+            // Lock submission to avoid concurrent duplicates
+            isSubmitting = true;
+            const submitButtons = this.querySelectorAll('button[type="submit"]');
+            submitButtons.forEach(btn => {
+                btn.classList.add('disabled');
+                btn.style.pointerEvents = 'none';
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>বিল সংরক্ষণ করা হচ্ছে...';
+            });
+        });
+    </script>
+}
